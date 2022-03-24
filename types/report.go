@@ -1,0 +1,45 @@
+package types
+
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+type ChainReport struct {
+	ChainName    string         `yaml:"chain" json:"chain"`
+	FirstBalance *BalanceReport `yaml:"first_balance" json:"first_balance"`
+	LastBalance  *BalanceReport `yaml:"last_balance" json:"last_balance"`
+}
+
+func NewChaiReport(chainName string, firstBalance *BalanceReport, lastBalance *BalanceReport) *ChainReport {
+	return &ChainReport{
+		ChainName:    chainName,
+		FirstBalance: firstBalance,
+		LastBalance:  lastBalance,
+	}
+}
+
+type BalanceReport struct {
+	Height  int64    `yaml:"height" json:"height"`
+	Address string   `yaml:"address" json:"address"`
+	Amount  []Amount `yaml:"amount" json:"amount"`
+}
+
+func NewBalanceReport(height int64, address string, amount []Amount) *BalanceReport {
+	return &BalanceReport{
+		Height:  height,
+		Address: address,
+		Amount:  amount,
+	}
+}
+
+type Amount struct {
+	Coin  sdk.Coin `yaml:"coin" json:"coin"`
+	Value float64  `yaml:"value" json:"value"`
+}
+
+func NewAmount(coin sdk.Coin, value float64) Amount {
+	return Amount{
+		Coin:  coin,
+		Value: value,
+	}
+}
