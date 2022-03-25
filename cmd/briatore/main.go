@@ -1,9 +1,11 @@
 package main
 
 import (
-	reportcmd "github.com/riccardom/briatore/cmd/report"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	reportcmd "github.com/riccardom/briatore/cmd/report"
 
 	junocmd "github.com/forbole/juno/v3/cmd"
 )

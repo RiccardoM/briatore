@@ -1,13 +1,15 @@
 package types
 
 import (
-	junocmd "github.com/forbole/juno/v3/cmd"
-	"github.com/forbole/juno/v3/node/remote"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path"
 	"strings"
+
+	junocmd "github.com/forbole/juno/v3/cmd"
+	"github.com/forbole/juno/v3/node/remote"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -68,6 +70,8 @@ func ReadConfig(cmd *cobra.Command) (*Config, error) {
 	}
 
 	cfgPath := path.Join(home, configFileName)
+	log.Debug().Str("home", cfgPath).Msg("reading config file")
+
 	bz, err := ioutil.ReadFile(cfgPath)
 	if err != nil {
 		return nil, err

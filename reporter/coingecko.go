@@ -3,11 +3,12 @@ package reporter
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/riccardom/briatore/types"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/riccardom/briatore/types"
 )
 
 const (

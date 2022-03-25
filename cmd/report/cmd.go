@@ -2,12 +2,15 @@ package report
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/simapp"
-	"github.com/riccardom/briatore/reporter"
-	"github.com/riccardom/briatore/types"
-	"github.com/spf13/cobra"
 	"strconv"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+
+	"github.com/riccardom/briatore/reporter"
+	"github.com/riccardom/briatore/types"
 )
 
 func GetReportCmd() *cobra.Command {
@@ -41,9 +44,13 @@ Multiple chains can be specified separating them using spaces.`,
 				return fmt.Errorf("cannot parse an empty list of chains: check your config and try again")
 			}
 
+			log.Debug().Strs("chains", chains).Msg("getting reports")
+
 			cdc, _ := simapp.MakeCodecs()
 
 			for _, chain := range chains {
+				log.Debug().Str("chain", chain).Msg("getting configuration")
+
 				chainCfg, found := cfg.GetChainConfig(chain)
 				if !found {
 					return fmt.Errorf("config for chain %s not found", chain)
@@ -53,6 +60,8 @@ Multiple chains can be specified separating them using spaces.`,
 				if err != nil {
 					return err
 				}
+
+				log.Debug().Str("chain", chain).Msg("getting report data")
 
 				data, err := rep.GetReportData(
 					time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC),

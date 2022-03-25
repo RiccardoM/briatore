@@ -3,15 +3,18 @@ package reporter
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	query "github.com/cosmos/cosmos-sdk/types/query"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/forbole/juno/v3/node/remote"
-	"github.com/riccardom/briatore/types"
+	"github.com/rs/zerolog/log"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"time"
+
+	"github.com/riccardom/briatore/types"
 )
 
 type Reporter struct {
@@ -70,6 +73,8 @@ func (r *Reporter) GetReportData(begin, end time.Time, cfg *types.ReportConfig) 
 // getBlockNearTimestamp returns the block nearest the given timestamp.
 // To do this we use the binary search between the genesis height and the latest block time.
 func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, error) {
+	log.Debug().Str("chain", r.chainName).Time("timestamp", timestamp).Msg("getting block near timestamp")
+
 	genesis, err := r.node.Genesis()
 	if err != nil {
 		return nil, fmt.Errorf("error while getting the genesis: %s", err)
@@ -96,8 +101,14 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, e
 	}
 
 	// Perform the binary search
-	return r.binarySearchBlock(genesisHeight, latestHeight, timestamp)
+	block, err := r.binarySearchBlock(genesisHeight, latestHeight, timestamp)
+	if err != nil {
+		return nil, err
+	}
 
+	log.Debug().Str("chain", r.chainName).Time("timestamp", timestamp).Msgf("found block near timestamp: %d", block.Height)
+
+	return block, nil
 }
 
 // binarySearchBlock performs a binary search between the given min and max heights,
@@ -163,6 +174,8 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 // getHeightReport returns the BalanceReport for the given height
 func (r *Reporter) getHeightReport(block *tmtypes.Block, cfg *types.ReportConfig) (*types.BalanceReport, error) {
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("getting height report")
+
 	ctx := remote.GetHeightRequestContext(context.Background(), block.Height)
 
 	paramsRes, err := r.stakingClient.Params(ctx, &stakingtypes.QueryParamsRequest{})
@@ -171,29 +184,34 @@ func (r *Reporter) getHeightReport(block *tmtypes.Block, cfg *types.ReportConfig
 	}
 	bondDenom := paramsRes.Params.BondDenom
 
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("getting balance amount")
 	balance, err := r.getBalanceAmount(block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting balance: %s", err)
 	}
 
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("getting delegations amount")
 	delegations, err := r.getDelegationsAmount(block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting delegations: %s", err)
 	}
 	balance.Add(delegations...)
 
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("getting redelegations amount")
 	redelegations, err := r.getReDelegationsAmount(bondDenom, block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while gettig redelegations: %s", err)
 	}
 	balance.Add(redelegations...)
 
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("getting unbonding delegations amount")
 	unbondingDelegations, err := r.getUnbondingDelegationsAmount(bondDenom, block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting unbonding delegations: %s", err)
 	}
 	balance.Add(unbondingDelegations...)
 
+	log.Debug().Str("chain", r.chainName).Int64("height", block.Height).Msg("computing report fiat value")
 	amount, err := r.getReportAmount(block.Time, balance, cfg)
 	if err != nil {
 		return nil, err
