@@ -1,6 +1,8 @@
 package types
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,16 +21,16 @@ func NewChaiReport(chainName string, firstBalance *BalanceReport, lastBalance *B
 }
 
 type BalanceReport struct {
-	Height  int64    `yaml:"height" json:"height"`
-	Address string   `yaml:"address" json:"address"`
-	Amount  []Amount `yaml:"amount" json:"amount"`
+	Timestamp time.Time `yaml:"timestamp" json:"timestamp"`
+	Address   string    `yaml:"address" json:"address"`
+	Amount    []Amount  `yaml:"amount" json:"amount"`
 }
 
-func NewBalanceReport(height int64, address string, amount []Amount) *BalanceReport {
+func NewBalanceReport(timestamp time.Time, address string, amount []Amount) *BalanceReport {
 	return &BalanceReport{
-		Height:  height,
-		Address: address,
-		Amount:  amount,
+		Timestamp: timestamp,
+		Address:   address,
+		Amount:    amount,
 	}
 }
 

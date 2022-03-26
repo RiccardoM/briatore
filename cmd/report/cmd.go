@@ -1,9 +1,14 @@
 package report
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strconv"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/rs/zerolog/log"
@@ -13,8 +18,16 @@ import (
 	"github.com/riccardom/briatore/types"
 )
 
+const (
+	flagFile   = "file"
+	flagOutput = "output"
+
+	outText = "text"
+	outJSON = "json"
+)
+
 func GetReportCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "report [year] [[chains]]",
 		Short: "Reports the data from the given chains for the given year",
 		Long: `
@@ -25,6 +38,8 @@ Multiple chains can be specified separating them using spaces.`,
 		Example: "report cosmos-hub osmosis chihuahua",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SetOut(os.Stdout)
+
 			cfg, err := types.ReadConfig(cmd)
 			if err != nil {
 				return err
@@ -48,7 +63,8 @@ Multiple chains can be specified separating them using spaces.`,
 
 			cdc, _ := simapp.MakeCodecs()
 
-			for _, chain := range chains {
+			reports := make([]*types.ChainReport, len(chains))
+			for i, chain := range chains {
 				log.Debug().Str("chain", chain).Msg("getting configuration")
 
 				chainCfg, found := cfg.GetChainConfig(chain)
@@ -56,7 +72,7 @@ Multiple chains can be specified separating them using spaces.`,
 					return fmt.Errorf("config for chain %s not found", chain)
 				}
 
-				rep, err := reporter.NewReporter(chainCfg, cdc)
+				rep, err := reporter.NewReporter(cfg.Report, chainCfg, cdc)
 				if err != nil {
 					return err
 				}
@@ -66,14 +82,46 @@ Multiple chains can be specified separating them using spaces.`,
 				data, err := rep.GetReportData(
 					time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC),
 					time.Date(year, 12, 31, 00, 00, 00, 000, time.UTC),
-					cfg.Report, // TODO: Allow to customize this with flags
 				)
+				if err != nil {
+					return err
+				}
 
-				// TODO: Output this somewhere
-				print(data)
+				reports[i] = data
+
+				// Stop the reporter
+				rep.Stop()
 			}
+
+			var bz []byte
+			output, _ := cmd.Flags().GetString(flagOutput)
+			switch output {
+			case outText:
+				bz, err = yaml.Marshal(&reports)
+			case outJSON:
+				bz, err = json.Marshal(&reports)
+			default:
+				return fmt.Errorf("invalid output value: %s", output)
+			}
+
+			if err != nil {
+				return err
+			}
+
+			outputFile, _ := cmd.Flags().GetString(flagFile)
+			if outputFile != "" {
+				log.Info().Msg("writing reports to file")
+				return ioutil.WriteFile(outputFile, bz, 0666)
+			}
+
+			cmd.Print(string(bz))
 
 			return nil
 		},
 	}
+
+	cmd.Flags().String(flagFile, "", "File where to store the reports")
+	cmd.Flags().String(flagOutput, outText, "Type of output (supported values: json, text)")
+
+	return cmd
 }

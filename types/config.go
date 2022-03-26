@@ -42,13 +42,10 @@ type ChainConfig struct {
 	Name    string         `yaml:"name"`
 	Address string         `yaml:"address"`
 	Node    remote.Details `yaml:"node"`
-}
-type ReportConfig struct {
-	Currency string `yaml:"currency"`
-	Coins    []Coin `yaml:"coins"`
+	Coins   []Coin         `yaml:"coins"`
 }
 
-func (c *ReportConfig) GetCoinGeckoID(denom string) (string, bool) {
+func (c *ChainConfig) GetCoinGeckoID(denom string) (string, bool) {
 	for _, coin := range c.Coins {
 		if strings.EqualFold(coin.Denom, denom) {
 			return coin.CoinGeckoID, true
@@ -60,6 +57,10 @@ func (c *ReportConfig) GetCoinGeckoID(denom string) (string, bool) {
 type Coin struct {
 	Denom       string `yaml:"denom"`
 	CoinGeckoID string `yaml:"coingecko_id"`
+}
+
+type ReportConfig struct {
+	Currency string `yaml:"currency"`
 }
 
 // ReadConfig reads the config from the given command
