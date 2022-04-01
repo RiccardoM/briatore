@@ -2,6 +2,11 @@ package reporter
 
 import (
 	"context"
+	"strings"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/riccardom/briatore/reporter/osmosis"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -10,15 +15,17 @@ import (
 	"github.com/forbole/juno/v3/node/remote"
 )
 
-func (r *Reporter) getBalanceAmount(height int64) (sdk.Coins, error) {
+func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, error) {
+	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting balance amount")
+
 	ctx := remote.GetHeightRequestContext(context.Background(), height)
 
 	balance := sdk.NewCoins()
 	var nextKey []byte
 	var stop = false
 	for !stop {
-		balRes, err := r.bankClient.AllBalances(ctx, &banktypes.QueryAllBalancesRequest{
-			Address: r.chainCfg.Address,
+		res, err := r.bankClient.AllBalances(ctx, &banktypes.QueryAllBalancesRequest{
+			Address: address,
 			Pagination: &query.PageRequest{
 				Key: nextKey,
 			},
@@ -27,22 +34,25 @@ func (r *Reporter) getBalanceAmount(height int64) (sdk.Coins, error) {
 			return nil, err
 		}
 
-		balance.Add(balRes.Balances...)
+		balance.Add(res.Balances...)
+		nextKey = res.Pagination.NextKey
 		stop = len(nextKey) == 0
 	}
 
 	return balance, nil
 }
 
-func (r *Reporter) getDelegationsAmount(height int64) (sdk.Coins, error) {
+func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins, error) {
+	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting delegations amount")
+
 	ctx := remote.GetHeightRequestContext(context.Background(), height)
 
 	var delegations []stakingtypes.DelegationResponse
 	var nextKey []byte
 	var stop = false
 	for !stop {
-		delRes, err := r.stakingClient.DelegatorDelegations(ctx, &stakingtypes.QueryDelegatorDelegationsRequest{
-			DelegatorAddr: r.chainCfg.Address,
+		res, err := r.stakingClient.DelegatorDelegations(ctx, &stakingtypes.QueryDelegatorDelegationsRequest{
+			DelegatorAddr: address,
 			Pagination: &query.PageRequest{
 				Key: nextKey,
 			},
@@ -51,7 +61,8 @@ func (r *Reporter) getDelegationsAmount(height int64) (sdk.Coins, error) {
 			return nil, err
 		}
 
-		delegations = append(delegations, delRes.DelegationResponses...)
+		delegations = append(delegations, res.DelegationResponses...)
+		nextKey = res.Pagination.NextKey
 		stop = len(nextKey) == 0
 	}
 
@@ -63,15 +74,16 @@ func (r *Reporter) getDelegationsAmount(height int64) (sdk.Coins, error) {
 	return amount, nil
 }
 
-func (r *Reporter) getReDelegationsAmount(bondDenom string, height int64) (sdk.Coins, error) {
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
+	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting redelegations amount")
 
+	ctx := remote.GetHeightRequestContext(context.Background(), height)
 	var delegations []stakingtypes.RedelegationResponse
 	var nextKey []byte
 	var stop = false
 	for !stop {
-		delRes, err := r.stakingClient.Redelegations(ctx, &stakingtypes.QueryRedelegationsRequest{
-			DelegatorAddr: r.chainCfg.Address,
+		res, err := r.stakingClient.Redelegations(ctx, &stakingtypes.QueryRedelegationsRequest{
+			DelegatorAddr: address,
 			Pagination: &query.PageRequest{
 				Key: nextKey,
 			},
@@ -80,7 +92,8 @@ func (r *Reporter) getReDelegationsAmount(bondDenom string, height int64) (sdk.C
 			return nil, err
 		}
 
-		delegations = append(delegations, delRes.RedelegationResponses...)
+		delegations = append(delegations, res.RedelegationResponses...)
+		nextKey = res.Pagination.NextKey
 		stop = len(nextKey) == 0
 	}
 
@@ -94,15 +107,16 @@ func (r *Reporter) getReDelegationsAmount(bondDenom string, height int64) (sdk.C
 	return amount, nil
 }
 
-func (r *Reporter) getUnbondingDelegationsAmount(bondDenom string, height int64) (sdk.Coins, error) {
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
+	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting unbonding delegations amount")
 
+	ctx := remote.GetHeightRequestContext(context.Background(), height)
 	var delegations []stakingtypes.UnbondingDelegation
 	var nextKey []byte
 	var stop = false
 	for !stop {
-		delRes, err := r.stakingClient.DelegatorUnbondingDelegations(ctx, &stakingtypes.QueryDelegatorUnbondingDelegationsRequest{
-			DelegatorAddr: r.chainCfg.Address,
+		res, err := r.stakingClient.DelegatorUnbondingDelegations(ctx, &stakingtypes.QueryDelegatorUnbondingDelegationsRequest{
+			DelegatorAddr: address,
 			Pagination: &query.PageRequest{
 				Key: nextKey,
 			},
@@ -111,7 +125,8 @@ func (r *Reporter) getUnbondingDelegationsAmount(bondDenom string, height int64)
 			return nil, err
 		}
 
-		delegations = append(delegations, delRes.UnbondingResponses...)
+		delegations = append(delegations, res.UnbondingResponses...)
+		nextKey = res.Pagination.NextKey
 		stop = len(nextKey) == 0
 	}
 
@@ -123,4 +138,19 @@ func (r *Reporter) getUnbondingDelegationsAmount(bondDenom string, height int64)
 	}
 
 	return amount, nil
+}
+
+func (r *Reporter) getOsmosisAmount(address string, height int64) (sdk.Coins, error) {
+	// If not Osmosis, return immediately
+	if !strings.Contains(strings.ToLower(r.cfg.Name), "osmosis") {
+		return nil, nil
+	}
+
+	reporter, err := osmosis.NewOsmosisReporter(r.grpcConnection)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the amount
+	return reporter.GetAmount(address, height)
 }

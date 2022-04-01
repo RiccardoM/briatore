@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/osmosis-labs/osmosis/v7/app"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -61,33 +61,43 @@ Multiple chains can be specified separating them using spaces.`,
 
 			log.Debug().Strs("chains", chains).Msg("getting reports")
 
-			cdc, _ := simapp.MakeCodecs()
+			cdc, _ := app.MakeCodecs()
 
 			reports := make([]*types.ChainReport, len(chains))
 			for i, chain := range chains {
 				log.Debug().Str("chain", chain).Msg("getting configuration")
-
-				chainCfg, found := cfg.GetChainConfig(chain)
-				if !found {
+				chainCfg := cfg.GetChainConfig(chain)
+				if chainCfg == nil {
 					return fmt.Errorf("config for chain %s not found", chain)
 				}
 
-				rep, err := reporter.NewReporter(cfg.Report, chainCfg, cdc)
+				log.Debug().Str("chain", chain).Msg("getting account")
+				account, found := cfg.GetChainAddress(chain)
+				if !found {
+					log.Debug().Str("chain", chain).Msg("address not found, skipping")
+					continue
+				}
+
+				rep, err := reporter.NewReporter(chainCfg, cdc)
 				if err != nil {
 					return err
 				}
 
 				log.Debug().Str("chain", chain).Msg("getting report data")
 
-				data, err := rep.GetReportData(
-					time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC),
-					time.Date(year, 12, 31, 00, 00, 00, 000, time.UTC),
-				)
+				firstDate := time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC)
+				firstReport, err := rep.GetReport(account, firstDate, cfg.Report)
 				if err != nil {
 					return err
 				}
 
-				reports[i] = data
+				secondDate := time.Date(year, 12, 31, 00, 00, 00, 000, time.UTC)
+				secondReport, err := rep.GetReport(account, secondDate, cfg.Report)
+				if err != nil {
+					return err
+				}
+
+				reports[i] = types.NewChaiReport(chainCfg.Name, firstReport, secondReport)
 
 				// Stop the reporter
 				rep.Stop()

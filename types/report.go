@@ -36,10 +36,10 @@ func NewBalanceReport(timestamp time.Time, address string, amount []Amount) *Bal
 
 type Amount struct {
 	Coin  sdk.Coin `yaml:"coin" json:"coin"`
-	Value float64  `yaml:"value" json:"value"`
+	Value string   `yaml:"value" json:"value"`
 }
 
-func NewAmount(coin sdk.Coin, value float64) Amount {
+func NewAmount(coin sdk.Coin, value string) Amount {
 	return Amount{
 		Coin:  coin,
 		Value: value,

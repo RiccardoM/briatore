@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	junocmd "github.com/forbole/juno/v3/cmd"
-	"github.com/forbole/juno/v3/node/remote"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -17,50 +16,50 @@ var (
 )
 
 type Config struct {
-	Chains []*ChainConfig `yaml:"chains"`
-	Report *ReportConfig  `yaml:"report"`
-}
-
-func (c *Config) GetChainConfig(chainName string) (*ChainConfig, bool) {
-	for _, chain := range c.Chains {
-		if strings.EqualFold(chain.Name, chainName) {
-			return chain, true
-		}
-	}
-	return nil, false
+	Report   *ReportConfig    `yaml:"report"`
+	Chains   []*ChainConfig   `yaml:"chains"`
+	Accounts []*AccountConfig `yaml:"accounts"`
 }
 
 func (c *Config) GetChainsList() []string {
-	names := make([]string, len(c.Chains))
-	for i, chain := range c.Chains {
-		names[i] = chain.Name
+	var chains []string
+	for _, chain := range c.Chains {
+		chains = append(chains, chain.Name)
 	}
-	return names
+	return chains
 }
 
-type ChainConfig struct {
-	Name    string         `yaml:"name"`
-	Address string         `yaml:"address"`
-	Node    remote.Details `yaml:"node"`
-	Coins   []Coin         `yaml:"coins"`
+func (c *Config) GetChainConfig(chainName string) *ChainConfig {
+	for _, chain := range c.Chains {
+		if strings.EqualFold(chain.Name, chainName) {
+			return chain
+		}
+	}
+	return nil
 }
 
-func (c *ChainConfig) GetCoinGeckoID(denom string) (string, bool) {
-	for _, coin := range c.Coins {
-		if strings.EqualFold(coin.Denom, denom) {
-			return coin.CoinGeckoID, true
+func (c *Config) GetChainAddress(chainName string) (address string, found bool) {
+	for _, account := range c.Accounts {
+		if strings.EqualFold(account.Chain, chainName) {
+			return account.Address, true
 		}
 	}
 	return "", false
 }
 
-type Coin struct {
-	Denom       string `yaml:"denom"`
-	CoinGeckoID string `yaml:"coingecko_id"`
-}
-
 type ReportConfig struct {
 	Currency string `yaml:"currency"`
+}
+
+type ChainConfig struct {
+	Name        string `yaml:"name"`
+	RPCAddress  string `yaml:"rpc_address"`
+	GRPCAddress string `yaml:"grpc_address"`
+}
+
+type AccountConfig struct {
+	Chain   string `yaml:"chain"`
+	Address string `yaml:"address"`
 }
 
 // ReadConfig reads the config from the given command
