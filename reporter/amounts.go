@@ -146,7 +146,7 @@ func (r *Reporter) getOsmosisAmount(address string, height int64) (sdk.Coins, er
 		return nil, nil
 	}
 
-	reporter, err := osmosis.NewOsmosisReporter(r.grpcConnection)
+	reporter, err := osmosis.NewReporter(r.grpcConnection)
 	if err != nil {
 		return nil, err
 	}

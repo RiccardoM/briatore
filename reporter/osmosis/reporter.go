@@ -10,17 +10,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-type OsmosisReporter struct {
+type Reporter struct {
 	lockupQueryClient lockuptypes.QueryClient
 }
 
-func NewOsmosisReporter(grpcConnection *grpc.ClientConn) (*OsmosisReporter, error) {
-	return &OsmosisReporter{
+func NewReporter(grpcConnection *grpc.ClientConn) (*Reporter, error) {
+	return &Reporter{
 		lockupQueryClient: lockuptypes.NewQueryClient(grpcConnection),
 	}, nil
 }
 
-func (r *OsmosisReporter) GetAmount(address string, height int64) (sdk.Coins, error) {
+func (r *Reporter) GetAmount(address string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", "osmosis").Int64("height", height).Msg("getting amount")
 
 	balance := sdk.NewCoins()
@@ -49,7 +49,7 @@ func (r *OsmosisReporter) GetAmount(address string, height int64) (sdk.Coins, er
 	return balance, nil
 }
 
-func (r *OsmosisReporter) getUnlockableAmount(address string, height int64) (sdk.Coins, error) {
+func (r *Reporter) getUnlockableAmount(address string, height int64) (sdk.Coins, error) {
 	ctx := remote.GetHeightRequestContext(context.Background(), height)
 	res, err := r.lockupQueryClient.AccountUnlockableCoins(ctx, &lockuptypes.AccountUnlockableCoinsRequest{
 		Owner: address,
@@ -61,7 +61,7 @@ func (r *OsmosisReporter) getUnlockableAmount(address string, height int64) (sdk
 	return res.Coins, nil
 }
 
-func (r *OsmosisReporter) getUnlockingAmount(address string, height int64) (sdk.Coins, error) {
+func (r *Reporter) getUnlockingAmount(address string, height int64) (sdk.Coins, error) {
 	ctx := remote.GetHeightRequestContext(context.Background(), height)
 	res, err := r.lockupQueryClient.AccountUnlockingCoins(ctx, &lockuptypes.AccountUnlockingCoinsRequest{
 		Owner: address,
@@ -73,7 +73,7 @@ func (r *OsmosisReporter) getUnlockingAmount(address string, height int64) (sdk.
 	return res.Coins, nil
 }
 
-func (r *OsmosisReporter) getLockedAmount(address string, height int64) (sdk.Coins, error) {
+func (r *Reporter) getLockedAmount(address string, height int64) (sdk.Coins, error) {
 	ctx := remote.GetHeightRequestContext(context.Background(), height)
 	res, err := r.lockupQueryClient.AccountLockedCoins(ctx, &lockuptypes.AccountLockedCoinsRequest{
 		Owner: address,

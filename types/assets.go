@@ -1,6 +1,8 @@
 package types
 
-import banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+import (
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+)
 
 type Asset struct {
 	Name        string                 `json:"name"`
