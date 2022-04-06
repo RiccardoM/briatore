@@ -38,13 +38,13 @@ func (c *Config) GetChainConfig(chainName string) *ChainConfig {
 	return nil
 }
 
-func (c *Config) GetChainAddress(chainName string) (address string, found bool) {
+func (c *Config) GetChainAddresses(chainName string) (addresses []string, found bool) {
 	for _, account := range c.Accounts {
 		if strings.EqualFold(account.Chain, chainName) {
-			return account.Address, true
+			return account.Addresses, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 type ReportConfig struct {
@@ -58,8 +58,8 @@ type ChainConfig struct {
 }
 
 type AccountConfig struct {
-	Chain   string `yaml:"chain"`
-	Address string `yaml:"address"`
+	Chain     string   `yaml:"chain"`
+	Addresses []string `yaml:"addresses"`
 }
 
 // ReadConfig reads the config from the given command

@@ -53,9 +53,9 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 	}, nil
 }
 
-// GetReport returns the BalanceReport data for the point in time that is closer to the given timestamp.
+// GetReports returns the BalanceReport data for the point in time that is closer to the given timestamp.
 // If the provided timestamp is before the genesis, an empty report will be returned instead.
-func (r *Reporter) GetReport(address string, timestamp time.Time, cfg *types.ReportConfig) (*types.BalanceReport, error) {
+func (r *Reporter) GetReports(addresses []string, timestamp time.Time, cfg *types.ReportConfig) (types.BalancesReports, error) {
 	block, err := r.getBlockNearTimestamp(timestamp)
 	if err != nil {
 		return nil, err
@@ -63,15 +63,31 @@ func (r *Reporter) GetReport(address string, timestamp time.Time, cfg *types.Rep
 
 	if block == nil {
 		// The chain didn't exist at that time, so we just return an empty balance report
-		return types.NewBalanceReport(timestamp, address, nil), nil
+		return nil, nil
 	}
 
-	return r.getHeightReport(address, block, cfg)
+	return r.getHeightReports(addresses, block, cfg)
+}
+
+// getHeightReports returns the list of BalanceReports for the given height
+func (r *Reporter) getHeightReports(addresses []string, block *tmtypes.Block, cfg *types.ReportConfig) (types.BalancesReports, error) {
+	log.Debug().Str("chain", r.cfg.Name).Int64("height", block.Height).Msg("getting height reports")
+
+	reports := make(types.BalancesReports, len(addresses))
+	for i, address := range addresses {
+		report, err := r.getHeightReport(address, block, cfg)
+		if err != nil {
+			return nil, err
+		}
+		reports[i] = report
+	}
+
+	return reports, nil
 }
 
 // getHeightReport returns the BalanceReport for the given height
 func (r *Reporter) getHeightReport(address string, block *tmtypes.Block, cfg *types.ReportConfig) (*types.BalanceReport, error) {
-	log.Debug().Str("chain", r.cfg.Name).Int64("height", block.Height).Msg("getting height report")
+	log.Debug().Str("chain", r.cfg.Name).Str("address", address).Int64("height", block.Height).Msg("getting height report")
 
 	ctx := remote.GetHeightRequestContext(context.Background(), block.Height)
 

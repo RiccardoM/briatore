@@ -7,18 +7,20 @@ import (
 )
 
 type ChainReport struct {
-	ChainName    string         `yaml:"chain" json:"chain"`
-	FirstBalance *BalanceReport `yaml:"first_balance" json:"first_balance"`
-	LastBalance  *BalanceReport `yaml:"last_balance" json:"last_balance"`
+	ChainName    string          `yaml:"chain" json:"chain"`
+	FirstBalance BalancesReports `yaml:"first_balances" json:"first_balances"`
+	LastBalance  BalancesReports `yaml:"last_balances" json:"last_balances"`
 }
 
-func NewChaiReport(chainName string, firstBalance *BalanceReport, lastBalance *BalanceReport) *ChainReport {
+func NewChaiReport(chainName string, firstBalance BalancesReports, lastBalance BalancesReports) *ChainReport {
 	return &ChainReport{
 		ChainName:    chainName,
 		FirstBalance: firstBalance,
 		LastBalance:  lastBalance,
 	}
 }
+
+type BalancesReports []*BalanceReport
 
 type BalanceReport struct {
 	Timestamp time.Time `yaml:"timestamp" json:"timestamp"`

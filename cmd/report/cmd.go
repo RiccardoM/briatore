@@ -72,12 +72,13 @@ Multiple chains can be specified separating them using spaces.`,
 				}
 
 				log.Debug().Str("chain", chain).Msg("getting account")
-				account, found := cfg.GetChainAddress(chain)
+				addresses, found := cfg.GetChainAddresses(chain)
 				if !found {
 					log.Debug().Str("chain", chain).Msg("address not found, skipping")
 					continue
 				}
 
+				log.Debug().Str("chain", chain).Msg("creating reporter")
 				rep, err := reporter.NewReporter(chainCfg, cdc)
 				if err != nil {
 					return err
@@ -86,13 +87,13 @@ Multiple chains can be specified separating them using spaces.`,
 				log.Debug().Str("chain", chain).Msg("getting report data")
 
 				firstDate := time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC)
-				firstReport, err := rep.GetReport(account, firstDate, cfg.Report)
+				firstReport, err := rep.GetReports(addresses, firstDate, cfg.Report)
 				if err != nil {
 					return err
 				}
 
 				secondDate := time.Date(year, 12, 31, 00, 00, 00, 000, time.UTC)
-				secondReport, err := rep.GetReport(account, secondDate, cfg.Report)
+				secondReport, err := rep.GetReports(addresses, secondDate, cfg.Report)
 				if err != nil {
 					return err
 				}
