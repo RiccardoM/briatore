@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/cosmos/cosmos-sdk v0.45.1
-	github.com/forbole/juno/v3 v3.0.2-0.20220402083510-8a48780dffab
+	github.com/forbole/juno/v3 v3.1.1-0.20220412085824-19e45f563863
 	github.com/osmosis-labs/osmosis/v7 v7.1.0
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/cobra v1.3.0
@@ -140,6 +140,8 @@ replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	// enable building wihh rocksdb
 	github.com/tecbot/gorocksdb => github.com/cosmos/gorocksdb v1.2.0
+	// Use Forbole Tendermint to support WSS
+	github.com/tendermint/tendermint => github.com/forbole/tendermint v0.34.13-0.20210820072129-a2a4af55563d
 	// use grpc compatible with cosmos protobufs
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
