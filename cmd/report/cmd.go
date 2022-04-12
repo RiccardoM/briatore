@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
+	"github.com/cosmos/cosmos-sdk/simapp"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/rs/zerolog/log"
@@ -28,10 +28,10 @@ const (
 
 func GetReportCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "report [year] [[chains]]",
-		Short: "Reports the data from the given chains for the given year",
+		Use:   "report [date] [[chains]]",
+		Short: "Reports the data from the given chains for the given date",
 		Long: `
-Reports the data from the given chains for the given year.
+Reports the data from the given chains for the given date.
 
 If no chain is provided, then all chains present inside the configuration file will be reported.
 Multiple chains can be specified separating them using spaces.`,
@@ -45,7 +45,7 @@ Multiple chains can be specified separating them using spaces.`,
 				return err
 			}
 
-			year, err := strconv.Atoi(args[0])
+			date, err := time.Parse(time.RFC3339, args[0])
 			if err != nil {
 				return err
 			}
@@ -61,10 +61,11 @@ Multiple chains can be specified separating them using spaces.`,
 
 			log.Debug().Strs("chains", chains).Msg("getting reports")
 
-			cdc, _ := app.MakeCodecs()
+			encodingCfg := simapp.MakeTestEncodingConfig()
+			cdc, _ := encodingCfg.Marshaler, encodingCfg.Amino
 
-			reports := make([]*types.ChainReport, len(chains))
-			for i, chain := range chains {
+			var amounts []types.Amount
+			for _, chain := range chains {
 				log.Debug().Str("chain", chain).Msg("getting configuration")
 				chainCfg := cfg.GetChainConfig(chain)
 				if chainCfg == nil {
@@ -86,19 +87,12 @@ Multiple chains can be specified separating them using spaces.`,
 
 				log.Debug().Str("chain", chain).Msg("getting report data")
 
-				firstDate := time.Date(year, 1, 1, 00, 00, 00, 000, time.UTC)
-				firstReport, err := rep.GetReports(addresses, firstDate, cfg.Report)
+				chainAmounts, err := rep.GetAmounts(addresses, date, cfg.Report)
 				if err != nil {
 					return err
 				}
 
-				secondDate := time.Date(year, 12, 31, 00, 00, 00, 000, time.UTC)
-				secondReport, err := rep.GetReports(addresses, secondDate, cfg.Report)
-				if err != nil {
-					return err
-				}
-
-				reports[i] = types.NewChaiReport(chainCfg.Name, firstReport, secondReport)
+				amounts = append(amounts, chainAmounts...)
 
 				// Stop the reporter
 				rep.Stop()
@@ -108,9 +102,9 @@ Multiple chains can be specified separating them using spaces.`,
 			output, _ := cmd.Flags().GetString(flagOutput)
 			switch output {
 			case outText:
-				bz, err = yaml.Marshal(&reports)
+				bz, err = yaml.Marshal(&amounts)
 			case outJSON:
-				bz, err = json.Marshal(&reports)
+				bz, err = json.Marshal(&amounts)
 			default:
 				return fmt.Errorf("invalid output value: %s", output)
 			}

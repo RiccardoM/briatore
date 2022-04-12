@@ -1,13 +1,29 @@
 package types
 
 import (
+	"strings"
+
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 type Asset struct {
 	Name        string                 `json:"name"`
+	Base        string                 `json:"base"`
+	Symbol      string                 `json:"symbol"`
 	CoingeckoID string                 `json:"coingecko_id"`
 	DenomUnits  []*banktypes.DenomUnit `json:"denom_units"`
+}
+
+func (a *Asset) GetBaseNativeDenom() (nativeDenom string, found bool) {
+	for _, unit := range a.DenomUnits {
+		if unit.Denom == a.Base {
+			if len(unit.Aliases) > 0 {
+				return unit.Aliases[0], true
+			}
+			return unit.Denom, true
+		}
+	}
+	return "", false
 }
 
 func (a *Asset) GetMaxExponent() uint64 {
@@ -24,7 +40,16 @@ func (a *Asset) GetMaxExponent() uint64 {
 
 type Assets []*Asset
 
-func (l Assets) GetAsset(coinDenom string) (asset *Asset, found bool) {
+func (l Assets) GetAssetByChainName(chainName string) (asset *Asset, found bool) {
+	for _, asset := range l {
+		if strings.EqualFold(asset.Name, chainName) {
+			return asset, true
+		}
+	}
+	return nil, false
+}
+
+func (l Assets) GetAssetByCoinDenom(coinDenom string) (asset *Asset, found bool) {
 	for _, asset := range l {
 		for _, denom := range asset.DenomUnits {
 			if denom.Denom == coinDenom {

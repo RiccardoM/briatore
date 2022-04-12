@@ -2,11 +2,8 @@ package reporter
 
 import (
 	"context"
-	"strings"
 
 	"github.com/rs/zerolog/log"
-
-	"github.com/riccardom/briatore/reporter/osmosis"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -34,7 +31,7 @@ func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, er
 			return nil, err
 		}
 
-		balance.Add(res.Balances...)
+		balance = balance.Add(res.Balances...)
 		nextKey = res.Pagination.NextKey
 		stop = len(nextKey) == 0
 	}
@@ -68,7 +65,7 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 
 	amount := sdk.NewCoins()
 	for _, res := range delegations {
-		amount.Add(res.Balance)
+		amount = amount.Add(res.Balance)
 	}
 
 	return amount, nil
@@ -100,7 +97,7 @@ func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, heig
 	amount := sdk.NewCoins()
 	for _, res := range delegations {
 		for _, entry := range res.Entries {
-			amount.Add(sdk.NewCoin(bondDenom, entry.Balance))
+			amount = amount.Add(sdk.NewCoin(bondDenom, entry.Balance))
 		}
 	}
 
@@ -133,24 +130,9 @@ func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom strin
 	amount := sdk.NewCoins()
 	for _, res := range delegations {
 		for _, entry := range res.Entries {
-			amount.Add(sdk.NewCoin(bondDenom, entry.Balance))
+			amount = amount.Add(sdk.NewCoin(bondDenom, entry.Balance))
 		}
 	}
 
 	return amount, nil
-}
-
-func (r *Reporter) getOsmosisAmount(address string, height int64) (sdk.Coins, error) {
-	// If not Osmosis, return immediately
-	if !strings.Contains(strings.ToLower(r.cfg.Name), "osmosis") {
-		return nil, nil
-	}
-
-	reporter, err := osmosis.NewReporter(r.grpcConnection)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the amount
-	return reporter.GetAmount(address, height)
 }

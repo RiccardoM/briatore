@@ -1,7 +1,6 @@
 package reporter
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -53,9 +52,9 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 	}, nil
 }
 
-// GetReports returns the BalanceReport data for the point in time that is closer to the given timestamp.
+// GetAmounts returns the amounts for the point in time that is closer to the given timestamp.
 // If the provided timestamp is before the genesis, an empty report will be returned instead.
-func (r *Reporter) GetReports(addresses []string, timestamp time.Time, cfg *types.ReportConfig) (types.BalancesReports, error) {
+func (r *Reporter) GetAmounts(addresses []string, timestamp time.Time, cfg *types.ReportConfig) ([]types.Amount, error) {
 	block, err := r.getBlockNearTimestamp(timestamp)
 	if err != nil {
 		return nil, err
@@ -70,32 +69,30 @@ func (r *Reporter) GetReports(addresses []string, timestamp time.Time, cfg *type
 }
 
 // getHeightReports returns the list of BalanceReports for the given height
-func (r *Reporter) getHeightReports(addresses []string, block *tmtypes.Block, cfg *types.ReportConfig) (types.BalancesReports, error) {
+func (r *Reporter) getHeightReports(addresses []string, block *tmtypes.Block, cfg *types.ReportConfig) ([]types.Amount, error) {
 	log.Debug().Str("chain", r.cfg.Name).Int64("height", block.Height).Msg("getting height reports")
 
-	reports := make(types.BalancesReports, len(addresses))
-	for i, address := range addresses {
-		report, err := r.getHeightReport(address, block, cfg)
+	var result []types.Amount
+	for _, address := range addresses {
+		amounts, err := r.getHeightReport(address, block, cfg)
 		if err != nil {
 			return nil, err
 		}
-		reports[i] = report
+
+		result = append(result, amounts...)
 	}
 
-	return reports, nil
+	return result, nil
 }
 
 // getHeightReport returns the BalanceReport for the given height
-func (r *Reporter) getHeightReport(address string, block *tmtypes.Block, cfg *types.ReportConfig) (*types.BalanceReport, error) {
+func (r *Reporter) getHeightReport(address string, block *tmtypes.Block, cfg *types.ReportConfig) ([]types.Amount, error) {
 	log.Debug().Str("chain", r.cfg.Name).Str("address", address).Int64("height", block.Height).Msg("getting height report")
 
-	ctx := remote.GetHeightRequestContext(context.Background(), block.Height)
-
-	paramsRes, err := r.stakingClient.Params(ctx, &stakingtypes.QueryParamsRequest{})
+	bondDenom, err := r.getBaseNativeDenom(r.cfg.Name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while getting base native denom: %s", err)
 	}
-	bondDenom := paramsRes.Params.BondDenom
 
 	balance, err := r.getBalanceAmount(address, block.Height)
 	if err != nil {
@@ -106,32 +103,21 @@ func (r *Reporter) getHeightReport(address string, block *tmtypes.Block, cfg *ty
 	if err != nil {
 		return nil, fmt.Errorf("error while getting delegations: %s", err)
 	}
-	balance.Add(delegations...)
+	balance = balance.Add(delegations...)
 
 	redelegations, err := r.getReDelegationsAmount(address, bondDenom, block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while gettig redelegations: %s", err)
 	}
-	balance.Add(redelegations...)
+	balance = balance.Add(redelegations...)
 
 	unbondingDelegations, err := r.getUnbondingDelegationsAmount(address, bondDenom, block.Height)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting unbonding delegations: %s", err)
 	}
-	balance.Add(unbondingDelegations...)
+	balance = balance.Add(unbondingDelegations...)
 
-	osmosisAmount, err := r.getOsmosisAmount(address, block.Height)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting osmosis amount: %s", err)
-	}
-	balance.Add(osmosisAmount...)
-
-	amount, err := r.getReportAmount(block.Time, balance, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return types.NewBalanceReport(block.Time, address, amount), nil
+	return r.getReportAmount(block.Time, balance, cfg)
 }
 
 // getReportAmount returns the corresponding fiat value for the given coins at the provided point in time
@@ -143,12 +129,11 @@ func (r *Reporter) getReportAmount(timestamp time.Time, coins sdk.Coins, cfg *ty
 		return nil, err
 	}
 
-	amount := make([]types.Amount, len(coins))
-	for i, coin := range coins {
+	var amounts []types.Amount
+	for _, coin := range coins {
 		// Get the CoinGecko ID, if not found just return a value of 0
-		asset, found := assets.GetAsset(coin.Denom)
+		asset, found := assets.GetAssetByCoinDenom(coin.Denom)
 		if !found {
-			amount[i] = types.NewAmount(coin, "0")
 			continue
 		}
 
@@ -163,13 +148,13 @@ func (r *Reporter) getReportAmount(timestamp time.Time, coins sdk.Coins, cfg *ty
 		}
 
 		// Compute the token value
-		tokenAmount := coin.Amount.Quo(types.GetPower(asset.GetMaxExponent()))
-		tokenValue := tokenAmount.ToDec().Mul(tokenPriceDec)
+		tokenAmount := coin.Amount.ToDec().QuoInt(types.GetPower(asset.GetMaxExponent()))
+		tokenValue := tokenAmount.Mul(tokenPriceDec)
 
-		amount[i] = types.NewAmount(coin, tokenValue.String())
+		amounts = append(amounts, types.NewAmount(asset, tokenAmount, tokenValue))
 	}
 
-	return amount, nil
+	return amounts, nil
 }
 
 func (r *Reporter) Stop() {

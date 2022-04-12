@@ -52,7 +52,7 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, e
 // binarySearchBlock performs a binary search between the given min and max heights,
 // searching for the block that is closer to the given timestamp
 func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.Time) (*tmtypes.Block, error) {
-	log.Trace().Int64("ming height", minHeight).Int64("max height", maxHeight).Time("timestamp", timestamp).Msg("binary search")
+	log.Trace().Int64("min height", minHeight).Int64("max height", maxHeight).Time("timestamp", timestamp).Msg("binary search")
 
 	minBlock, err := r.node.Block(minHeight)
 	if err != nil {
