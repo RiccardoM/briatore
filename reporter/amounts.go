@@ -1,7 +1,7 @@
 package reporter
 
 import (
-	"context"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 
@@ -9,13 +9,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/query"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/forbole/juno/v3/node/remote"
 )
 
 func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting balance amount")
 
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
 
 	balance := sdk.NewCoins()
 	var nextKey []byte
@@ -42,7 +41,7 @@ func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, er
 func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting delegations amount")
 
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
 
 	var delegations []stakingtypes.DelegationResponse
 	var nextKey []byte
@@ -55,6 +54,10 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 			},
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "unable to find delegations") {
+				return nil, nil
+			}
+
 			return nil, err
 		}
 
@@ -74,7 +77,8 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting redelegations amount")
 
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+
 	var delegations []stakingtypes.RedelegationResponse
 	var nextKey []byte
 	var stop = false
@@ -107,7 +111,8 @@ func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, heig
 func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting unbonding delegations amount")
 
-	ctx := remote.GetHeightRequestContext(context.Background(), height)
+	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+
 	var delegations []stakingtypes.UnbondingDelegation
 	var nextKey []byte
 	var stop = false

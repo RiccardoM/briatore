@@ -52,9 +52,10 @@ type ReportConfig struct {
 }
 
 type ChainConfig struct {
-	Name        string `yaml:"name"`
-	RPCAddress  string `yaml:"rpc_address"`
-	GRPCAddress string `yaml:"grpc_address"`
+	Name               string `yaml:"name"`
+	RPCAddress         string `yaml:"rpc_address"`
+	GRPCAddress        string `yaml:"grpc_address"`
+	AuthorizationToken string `yaml:"authorization,omitempty"`
 }
 
 type AccountConfig struct {

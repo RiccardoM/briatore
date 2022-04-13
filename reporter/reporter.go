@@ -31,7 +31,7 @@ type Reporter struct {
 func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 	remoteCfg := remote.NewDetails(
 		remote.NewRPCConfig("briatore", cfg.RPCAddress, 10),
-		remote.NewGrpcConfig(cfg.GRPCAddress, strings.Contains(cfg.GRPCAddress, "https://")),
+		remote.NewGrpcConfig(cfg.GRPCAddress, !strings.Contains(cfg.GRPCAddress, "https://")),
 	)
 	node, err := remote.NewNode(remoteCfg, cdc)
 	if err != nil {
@@ -54,7 +54,10 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 
 // GetAmounts returns the amounts for the point in time that is closer to the given timestamp.
 // If the provided timestamp is before the genesis, an empty report will be returned instead.
+// NOTE. Calling this method will close the node as soon as it returns
 func (r *Reporter) GetAmounts(addresses []string, timestamp time.Time, cfg *types.ReportConfig) ([]types.Amount, error) {
+	defer r.stop()
+
 	block, err := r.getBlockNearTimestamp(timestamp)
 	if err != nil {
 		return nil, err
@@ -157,6 +160,6 @@ func (r *Reporter) getReportAmount(timestamp time.Time, coins sdk.Coins, cfg *ty
 	return amounts, nil
 }
 
-func (r *Reporter) Stop() {
+func (r *Reporter) stop() {
 	r.node.Stop()
 }

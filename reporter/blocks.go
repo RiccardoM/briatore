@@ -2,9 +2,13 @@ package reporter
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/tendermint/tendermint/rpc/jsonrpc/types"
+
 	"github.com/rs/zerolog/log"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -29,7 +33,7 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, e
 		return nil, fmt.Errorf("error while getting latest height: %s", err)
 	}
 
-	latestBlock, err := r.node.Block(latestHeight)
+	latestBlock, err := r.getBlockOrLatestHeight(latestHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting latest block: %s", err)
 	}
@@ -54,7 +58,7 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, e
 func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.Time) (*tmtypes.Block, error) {
 	log.Trace().Int64("min height", minHeight).Int64("max height", maxHeight).Time("timestamp", timestamp).Msg("binary search")
 
-	minBlock, err := r.node.Block(minHeight)
+	minBlock, err := r.getBlockOrMinHeight(minHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting min block: %s", err)
 	}
@@ -64,7 +68,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 		return minBlock.Block, nil
 	}
 
-	maxBlock, err := r.node.Block(maxHeight)
+	maxBlock, err := r.getBlockOrMinHeight(maxHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting max block")
 	}
@@ -91,7 +95,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 	avgHeight := (maxHeight + minHeight) / 2
 
-	avgBlock, err := r.node.Block(avgHeight)
+	avgBlock, err := r.getBlockOrMinHeight(avgHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting average block: %s", err)
 	}
@@ -114,4 +118,54 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 	}
 
 	return r.binarySearchBlock(minHeight, maxHeight, timestamp)
+}
+
+// getBlockOrMinHeight gets the block at the given height, or the min height available if not found
+func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, error) {
+	block, err := r.node.Block(height)
+
+	if err != nil {
+		if rpcErr, ok := err.(*types.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
+			var lowestHeight int64
+			_, err = fmt.Sscanf(rpcErr.Data, "height %d is not available, lowest height is %d", &height, &lowestHeight)
+			if err != nil {
+				return nil, err
+			}
+
+			log.Debug().Str("chain", r.cfg.Name).
+				Int64("height", height).Int64("lowest height", lowestHeight).
+				Msg("height not found, getting lowest height")
+
+			return r.node.Block(lowestHeight)
+		}
+
+		return nil, err
+	}
+
+	return block, nil
+}
+
+// getBlockOrLatestHeight gets the block at the given height, or the max height available if not found
+func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, error) {
+	block, err := r.node.Block(height)
+
+	if err != nil {
+		if rpcErr, ok := err.(*types.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
+			var maxHeight int64
+			_, err = fmt.Sscanf(rpcErr.Data, "height %d must be less than or equal to the current blockchain height %d", &height, &maxHeight)
+			if err != nil {
+				return nil, err
+			}
+
+			log.Debug().Str("chain", r.cfg.Name).
+				Int64("height", height).Int64("max height", maxHeight).
+				Msg("height not found, getting max height")
+
+			return r.node.Block(maxHeight)
+		}
+
+		return nil, err
+	}
+
+	return block, nil
 }

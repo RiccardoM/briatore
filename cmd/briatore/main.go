@@ -3,6 +3,9 @@ package main
 import (
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/spf13/cobra"
 
 	reportcmd "github.com/riccardom/briatore/cmd/report"
@@ -11,6 +14,9 @@ import (
 )
 
 func main() {
+	// Setup logging to be textual
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 	// Config the runner
 	config := junocmd.NewConfig("briatore")
 

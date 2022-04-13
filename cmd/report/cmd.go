@@ -82,20 +82,18 @@ Multiple chains can be specified separating them using spaces.`,
 				log.Debug().Str("chain", chain).Msg("creating reporter")
 				rep, err := reporter.NewReporter(chainCfg, cdc)
 				if err != nil {
-					return err
+					log.Error().Str("chain", chain).Err(err).Msg("error while creating the reporter")
+					continue
 				}
 
 				log.Debug().Str("chain", chain).Msg("getting report data")
-
 				chainAmounts, err := rep.GetAmounts(addresses, date, cfg.Report)
 				if err != nil {
-					return err
+					log.Error().Str("chain", chain).Err(err).Msg("error while getting the report data")
+					continue
 				}
 
 				amounts = append(amounts, chainAmounts...)
-
-				// Stop the reporter
-				rep.Stop()
 			}
 
 			var bz []byte
