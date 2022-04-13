@@ -3,6 +3,7 @@ package report
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gocarina/gocsv"
 	"io/ioutil"
 	"os"
 	"time"
@@ -24,6 +25,7 @@ const (
 
 	outText = "text"
 	outJSON = "json"
+	outCSV  = "csv"
 )
 
 func GetReportCmd() *cobra.Command {
@@ -96,13 +98,19 @@ Multiple chains can be specified separating them using spaces.`,
 				amounts = append(amounts, chainAmounts...)
 			}
 
+			// Merge the various amounts
+			amounts = types.MergeSameAssetsAmounts(amounts)
+			amountsOutput := types.Format(amounts)
+
 			var bz []byte
 			output, _ := cmd.Flags().GetString(flagOutput)
 			switch output {
 			case outText:
-				bz, err = yaml.Marshal(&amounts)
+				bz, err = yaml.Marshal(&amountsOutput)
 			case outJSON:
-				bz, err = json.Marshal(&amounts)
+				bz, err = json.Marshal(&amountsOutput)
+			case outCSV:
+				bz, err = gocsv.MarshalBytes(&amountsOutput)
 			default:
 				return fmt.Errorf("invalid output value: %s", output)
 			}
