@@ -10,8 +10,8 @@ type Amount struct {
 	Value  sdk.Dec `yaml:"value" json:"value"`
 }
 
-func NewAmount(asset *Asset, amount sdk.Dec, value sdk.Dec) Amount {
-	return Amount{
+func NewAmount(asset *Asset, amount sdk.Dec, value sdk.Dec) *Amount {
+	return &Amount{
 		Asset:  asset,
 		Amount: amount,
 		Value:  value,
@@ -28,7 +28,7 @@ type AmountOutput struct {
 }
 
 // Format formats the given amounts to be later printed properly
-func Format(amounts []Amount) []AmountOutput {
+func Format(amounts []*Amount) []AmountOutput {
 	csvAmounts := make([]AmountOutput, len(amounts))
 	for i, amount := range amounts {
 		csvAmounts[i] = AmountOutput{
@@ -43,7 +43,7 @@ func Format(amounts []Amount) []AmountOutput {
 // --------------------------------------------------------------------------------------------------------------------
 
 // MergeSameAssetsAmounts merges together the various amounts for the same assets present inside the given slice
-func MergeSameAssetsAmounts(slice []Amount) []Amount {
+func MergeSameAssetsAmounts(slice []*Amount) []*Amount {
 	assets := map[string]*Asset{}
 	amounts := map[string]sdk.Dec{}
 	values := map[string]sdk.Dec{}
@@ -71,7 +71,7 @@ func MergeSameAssetsAmounts(slice []Amount) []Amount {
 		values[amount.Asset.Name] = assetValue.Add(amount.Value)
 	}
 
-	var result []Amount
+	var result []*Amount
 	for name, asset := range assets {
 		result = append(result, NewAmount(asset, amounts[name], values[name]))
 	}

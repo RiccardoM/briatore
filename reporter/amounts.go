@@ -3,6 +3,8 @@ package reporter
 import (
 	"strings"
 
+	"github.com/riccardom/briatore/types"
+
 	"github.com/rs/zerolog/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,9 +14,9 @@ import (
 )
 
 func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, error) {
-	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting balance amount")
+	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting balance amount")
 
-	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+	ctx := types.GetRequestContext(height, r.grpcHeaders)
 
 	balance := sdk.NewCoins()
 	var nextKey []byte
@@ -39,9 +41,9 @@ func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, er
 }
 
 func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins, error) {
-	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting delegations amount")
+	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting delegations amount")
 
-	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+	ctx := types.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.DelegationResponse
 	var nextKey []byte
@@ -75,9 +77,9 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 }
 
 func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
-	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting redelegations amount")
+	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting redelegations amount")
 
-	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+	ctx := types.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.RedelegationResponse
 	var nextKey []byte
@@ -109,9 +111,9 @@ func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, heig
 }
 
 func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
-	log.Debug().Str("chain", r.cfg.Name).Int64("height", height).Msg("getting unbonding delegations amount")
+	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting unbonding delegations amount")
 
-	ctx := GetRequestContext(height, r.cfg.AuthorizationToken)
+	ctx := types.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.UnbondingDelegation
 	var nextKey []byte

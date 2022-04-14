@@ -3,10 +3,11 @@ package report
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gocarina/gocsv"
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/gocarina/gocsv"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 
@@ -30,13 +31,8 @@ const (
 
 func GetReportCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "report [date] [[chains]]",
-		Short: "Reports the data from the given chains for the given date",
-		Long: `
-Reports the data from the given chains for the given date.
-
-If no chain is provided, then all chains present inside the configuration file will be reported.
-Multiple chains can be specified separating them using spaces.`,
+		Use:     "report [date]",
+		Short:   "Reports the data for the provided addresses",
 		Example: "report cosmos-hub osmosis chihuahua",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,46 +48,34 @@ Multiple chains can be specified separating them using spaces.`,
 				return err
 			}
 
-			chains := args[1:]
-			if len(chains) == 0 {
-				chains = cfg.GetChainsList()
-			}
-
-			if len(chains) == 0 {
-				return fmt.Errorf("cannot parse an empty list of chains: check your config and try again")
-			}
-
-			log.Debug().Strs("chains", chains).Msg("getting reports")
-
 			encodingCfg := simapp.MakeTestEncodingConfig()
 			cdc, _ := encodingCfg.Marshaler, encodingCfg.Amino
 
-			var amounts []types.Amount
-			for _, chain := range chains {
-				log.Debug().Str("chain", chain).Msg("getting configuration")
-				chainCfg := cfg.GetChainConfig(chain)
-				if chainCfg == nil {
-					return fmt.Errorf("config for chain %s not found", chain)
-				}
+			var amounts []*types.Amount
+			for _, chain := range cfg.Chains {
 
-				log.Debug().Str("chain", chain).Msg("getting account")
-				addresses, found := cfg.GetChainAddresses(chain)
-				if !found {
-					log.Debug().Str("chain", chain).Msg("address not found, skipping")
-					continue
-				}
-
-				log.Debug().Str("chain", chain).Msg("creating reporter")
-				rep, err := reporter.NewReporter(chainCfg, cdc)
+				// TODO: Get the addresses from the user
+				addresses, err := types.GetUniqueSupportedAddresses(chain, cfg.Addresses)
 				if err != nil {
-					log.Error().Str("chain", chain).Err(err).Msg("error while creating the reporter")
+					return err
+				}
+
+				if len(addresses) == 0 {
+					log.Info().Str("chain", chain.Name).Msg("no supported addresses found, skipping")
 					continue
 				}
 
-				log.Debug().Str("chain", chain).Msg("getting report data")
+				log.Debug().Str("chain", chain.Name).Msg("creating reporter")
+				rep, err := reporter.NewReporter(chain, cdc)
+				if err != nil {
+					log.Error().Str("chain", chain.Name).Err(err).Msg("error while creating the reporter")
+					continue
+				}
+
+				log.Debug().Str("chain", chain.Name).Msg("getting report data")
 				chainAmounts, err := rep.GetAmounts(addresses, date, cfg.Report)
 				if err != nil {
-					log.Error().Str("chain", chain).Err(err).Msg("error while getting the report data")
+					log.Error().Str("chain", chain.Name).Err(err).Msg("error while getting the amounts")
 					continue
 				}
 

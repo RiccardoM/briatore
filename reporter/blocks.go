@@ -5,7 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	"github.com/riccardom/briatore/types"
+
+	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
 
 	"github.com/rs/zerolog/log"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -14,8 +16,41 @@ import (
 
 // getBlockNearTimestamp returns the block nearest the given timestamp.
 // To do this we use the binary search between the genesis height and the latest block time.
-func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, error) {
-	log.Debug().Str("chain", r.cfg.Name).Time("timestamp", timestamp).Msg("getting block near timestamp")
+func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (types.BlockData, error) {
+	blocksData, err := types.GetBlocksData()
+	if err != nil {
+		return types.BlockData{}, err
+	}
+
+	blockData, ok := blocksData[r.chain.Name]
+	if !ok {
+		block, err := r.getBlockNearTimestampFromChain(timestamp)
+		if err != nil {
+			return types.BlockData{}, err
+		}
+
+		if block == nil {
+			// The chain didn't exist at that time, so we just return an empty balance report
+			return types.BlockData{}, nil
+		}
+
+		blockData = types.NewBlockData(block.Height, block.Time)
+
+		// Update the blocks data
+		blocksData[r.chain.Name] = blockData
+		err = types.WriteBlocksData(blocksData)
+		if err != nil {
+			return types.BlockData{}, err
+		}
+	}
+
+	return blockData, nil
+}
+
+// getBlockNearTimestampFromChain returns the block nearest the given timestamp querying the chain.
+// To do this we use the binary search between the genesis height and the latest block time.
+func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes.Block, error) {
+	log.Debug().Str("chain", r.chain.Name).Time("timestamp", timestamp).Msg("getting block near timestamp from chain")
 
 	genesis, err := r.node.Genesis()
 	if err != nil {
@@ -48,7 +83,7 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (*tmtypes.Block, e
 		return nil, err
 	}
 
-	log.Debug().Str("chain", r.cfg.Name).Time("timestamp", timestamp).Msgf("found block near timestamp: %d", block.Height)
+	log.Debug().Str("chain", r.chain.Name).Time("timestamp", timestamp).Msgf("found block near timestamp: %d", block.Height)
 
 	return block, nil
 }
@@ -125,14 +160,14 @@ func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, err
 	block, err := r.node.Block(height)
 
 	if err != nil {
-		if rpcErr, ok := err.(*types.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
+		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
 			var lowestHeight int64
 			_, err = fmt.Sscanf(rpcErr.Data, "height %d is not available, lowest height is %d", &height, &lowestHeight)
 			if err != nil {
 				return nil, err
 			}
 
-			log.Debug().Str("chain", r.cfg.Name).
+			log.Debug().Str("chain", r.chain.Name).
 				Int64("height", height).Int64("lowest height", lowestHeight).
 				Msg("height not found, getting lowest height")
 
@@ -150,14 +185,14 @@ func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, 
 	block, err := r.node.Block(height)
 
 	if err != nil {
-		if rpcErr, ok := err.(*types.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
+		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
 			var maxHeight int64
 			_, err = fmt.Sscanf(rpcErr.Data, "height %d must be less than or equal to the current blockchain height %d", &height, &maxHeight)
 			if err != nil {
 				return nil, err
 			}
 
-			log.Debug().Str("chain", r.cfg.Name).
+			log.Debug().Str("chain", r.chain.Name).
 				Int64("height", height).Int64("max height", maxHeight).
 				Msg("height not found, getting max height")
 

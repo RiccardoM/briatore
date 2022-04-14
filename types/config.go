@@ -3,7 +3,6 @@ package types
 import (
 	"io/ioutil"
 	"path"
-	"strings"
 
 	junocmd "github.com/forbole/juno/v3/cmd"
 	"github.com/rs/zerolog/log"
@@ -16,35 +15,9 @@ var (
 )
 
 type Config struct {
-	Report   *ReportConfig    `yaml:"report"`
-	Chains   []*ChainConfig   `yaml:"chains"`
-	Accounts []*AccountConfig `yaml:"accounts"`
-}
-
-func (c *Config) GetChainsList() []string {
-	var chains []string
-	for _, chain := range c.Chains {
-		chains = append(chains, chain.Name)
-	}
-	return chains
-}
-
-func (c *Config) GetChainConfig(chainName string) *ChainConfig {
-	for _, chain := range c.Chains {
-		if strings.EqualFold(chain.Name, chainName) {
-			return chain
-		}
-	}
-	return nil
-}
-
-func (c *Config) GetChainAddresses(chainName string) (addresses []string, found bool) {
-	for _, account := range c.Accounts {
-		if strings.EqualFold(account.Chain, chainName) {
-			return account.Addresses, true
-		}
-	}
-	return nil, false
+	Report    *ReportConfig  `yaml:"report"`
+	Chains    []*ChainConfig `yaml:"chains"`
+	Addresses []string       `yaml:"addresses"`
 }
 
 type ReportConfig struct {
@@ -52,10 +25,11 @@ type ReportConfig struct {
 }
 
 type ChainConfig struct {
-	Name               string `yaml:"name"`
-	RPCAddress         string `yaml:"rpc_address"`
-	GRPCAddress        string `yaml:"grpc_address"`
-	AuthorizationToken string `yaml:"authorization,omitempty"`
+	Name         string `yaml:"name"`
+	RPCAddress   string `yaml:"rpcAddress"`
+	GRPCAddress  string `yaml:"grpcAddress"`
+	AssetName    string `yaml:"asset"`
+	Bech32Prefix string `yaml:"bech32Prefix"`
 }
 
 type AccountConfig struct {
@@ -69,8 +43,9 @@ func ReadConfig(cmd *cobra.Command) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	homePath = home
 
-	cfgPath := path.Join(home, configFileName)
+	cfgPath := path.Join(homePath, configFileName)
 	log.Debug().Str("home", cfgPath).Msg("reading config file")
 
 	bz, err := ioutil.ReadFile(cfgPath)
