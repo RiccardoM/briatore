@@ -3,6 +3,8 @@ package reporter
 import (
 	"strings"
 
+	"github.com/riccardom/briatore/reporter/osmosis"
+
 	"github.com/riccardom/briatore/types"
 
 	"github.com/rs/zerolog/log"
@@ -142,4 +144,19 @@ func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom strin
 	}
 
 	return amount, nil
+}
+
+func (r *Reporter) getOsmosisAmount(address string, height int64) (sdk.Coins, error) {
+	// If not Osmosis, return immediately
+	if !strings.Contains(strings.ToLower(r.chain.Name), "osmosis") {
+		return nil, nil
+	}
+
+	reporter, err := osmosis.NewReporter(r.grpcConnection, r.grpcHeaders, r.cdc)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the amount
+	return reporter.GetAmount(address, height)
 }

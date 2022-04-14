@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/gocarina/gocsv"
+	"github.com/osmosis-labs/osmosis/v7/app"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/gocarina/gocsv"
 
 	"gopkg.in/yaml.v3"
 
@@ -48,8 +48,7 @@ func GetReportCmd() *cobra.Command {
 				return err
 			}
 
-			encodingCfg := simapp.MakeTestEncodingConfig()
-			cdc, _ := encodingCfg.Marshaler, encodingCfg.Amino
+			cdc, _ := app.MakeCodecs()
 
 			var amounts []*types.Amount
 			for _, chain := range cfg.Chains {

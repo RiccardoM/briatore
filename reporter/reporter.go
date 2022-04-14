@@ -17,6 +17,8 @@ import (
 )
 
 type Reporter struct {
+	cdc codec.Codec
+
 	chain *types.ChainConfig
 
 	grpcConnection *grpc.ClientConn
@@ -46,6 +48,7 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 	}
 
 	return &Reporter{
+		cdc:            cdc,
 		chain:          cfg,
 		grpcConnection: grpcConnection,
 		grpcHeaders:    headers,
@@ -116,6 +119,12 @@ func (r *Reporter) getHeightAmount(address string, height int64) (sdk.Coins, err
 		return nil, fmt.Errorf("error while getting unbonding delegations: %s", err)
 	}
 	balance = balance.Add(unbondingDelegations...)
+
+	osmosisAmount, err := r.getOsmosisAmount(address, height)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting osmosis amount: %s", err)
+	}
+	balance = balance.Add(osmosisAmount...)
 
 	return balance, nil
 }
