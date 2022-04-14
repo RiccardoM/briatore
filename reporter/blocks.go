@@ -17,13 +17,12 @@ import (
 // getBlockNearTimestamp returns the block nearest the given timestamp.
 // To do this we use the binary search between the genesis height and the latest block time.
 func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (types.BlockData, error) {
-	blocksData, err := types.GetBlocksData()
+	blockData, found, err := types.GetBlockData(r.chain.Name, timestamp)
 	if err != nil {
 		return types.BlockData{}, err
 	}
 
-	blockData, ok := blocksData[r.chain.Name]
-	if !ok {
+	if !found {
 		block, err := r.getBlockNearTimestampFromChain(timestamp)
 		if err != nil {
 			return types.BlockData{}, err
@@ -34,11 +33,10 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (types.BlockData, 
 			return types.BlockData{}, nil
 		}
 
-		blockData = types.NewBlockData(block.Height, block.Time)
+		blockData = types.NewBlockData(r.chain.Name, block.Height, block.Time)
 
-		// Update the blocks data
-		blocksData[r.chain.Name] = blockData
-		err = types.WriteBlocksData(blocksData)
+		// Cache the blocks data
+		err = types.CacheBlockData(blockData)
 		if err != nil {
 			return types.BlockData{}, err
 		}

@@ -92,7 +92,7 @@ func (r *Reporter) getHeightAmount(address string, height int64) (sdk.Coins, err
 
 	log.Debug().Str("chain", r.chain.Name).Str("address", address).Int64("height", height).Msg("getting height report")
 
-	bondDenom, err := r.getBaseNativeDenom(r.chain.Name)
+	bondDenom, err := types.GetBaseNativeDenom(r.chain.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting base native denom: %s", err)
 	}
@@ -133,7 +133,7 @@ func (r *Reporter) getHeightAmount(address string, height int64) (sdk.Coins, err
 func (r *Reporter) getCoinsAmounts(timestamp time.Time, coins sdk.Coins, cfg *types.ReportConfig) ([]*types.Amount, error) {
 	log.Debug().Str("chain", r.chain.Name).Time("timestamp", timestamp).Msg("computing report fiat value")
 
-	assets, err := r.getAssetsList()
+	assets, err := types.GetAssets()
 	if err != nil {
 		return nil, err
 	}

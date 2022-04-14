@@ -82,9 +82,6 @@ func GetReportCmd() *cobra.Command {
 				amounts = append(amounts, chainAmounts...)
 
 				log.Info().Str("chain", chain.Name).Msg("report retrieved")
-
-				// This is to avoid any API rate limit reaching
-				time.Sleep(time.Second * 30)
 			}
 
 			// Merge the various amounts

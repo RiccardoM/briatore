@@ -1,9 +1,20 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path"
 	"strings"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+)
+
+const (
+	assetFile     = "assets.json"
+	assetsListURL = "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
 )
 
 type Asset struct {
@@ -63,4 +74,90 @@ func (l Assets) GetAssetByCoinDenom(coinDenom string) (asset *Asset, found bool)
 		}
 	}
 	return nil, false
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+type assetsResponse struct {
+	Assets Assets `json:"assets"`
+}
+
+// GetAssets returns the list of supported assets
+func GetAssets() (Assets, error) {
+	// Read the stored assets
+	bz, err := ioutil.ReadFile(path.Join(homePath, assetFile))
+	if os.IsNotExist(err) {
+		// Get the assets from online
+		assets, err := RefreshAssets()
+		if err != nil {
+			return nil, err
+		}
+
+		// Return the read assets
+		return assets, nil
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	var assets Assets
+	return assets, json.Unmarshal(bz, &assets)
+}
+
+// RefreshAssets gets the assets from the GitHub endpoint and caches them
+func RefreshAssets() (Assets, error) {
+	res, err := http.Get(assetsListURL)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	bz, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the response
+	var response assetsResponse
+	err = json.Unmarshal(bz, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the assets
+	err = writeAssets(response.Assets)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Assets, nil
+}
+
+// writeAssets writes the given assets inside the cache
+func writeAssets(assets Assets) error {
+	bz, err := json.Marshal(&assets)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path.Join(homePath, assetFile), bz, 0600)
+}
+
+func GetBaseNativeDenom(chainName string) (string, error) {
+	assets, err := GetAssets()
+	if err != nil {
+		return "", nil
+	}
+
+	asset, found := assets.GetAssetByChainName(chainName)
+	if !found {
+		return "", fmt.Errorf("asset not found")
+	}
+
+	nativeDenom, found := asset.GetBaseNativeDenom()
+	if !found {
+		return "", fmt.Errorf("native denom not found")
+	}
+
+	return nativeDenom, nil
 }
