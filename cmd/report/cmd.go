@@ -52,6 +52,7 @@ func GetReportCmd() *cobra.Command {
 
 			var amounts []*types.Amount
 			for _, chain := range cfg.Chains {
+				log.Info().Str("chain", chain.Name).Msg("getting report")
 
 				// TODO: Get the addresses from the user
 				addresses, err := types.GetUniqueSupportedAddresses(chain, cfg.Addresses)
@@ -79,6 +80,11 @@ func GetReportCmd() *cobra.Command {
 				}
 
 				amounts = append(amounts, chainAmounts...)
+
+				log.Info().Str("chain", chain.Name).Msg("report retrieved")
+
+				// This is to avoid any API rate limit reaching
+				time.Sleep(time.Second * 30)
 			}
 
 			// Merge the various amounts
