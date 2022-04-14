@@ -52,23 +52,27 @@ func (r *Reporter) getBlockNearTimestamp(timestamp time.Time) (types.BlockData, 
 func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes.Block, error) {
 	log.Debug().Str("chain", r.chain.Name).Time("timestamp", timestamp).Msg("getting block near timestamp from chain")
 
-	genesis, err := r.node.Genesis()
-	if err != nil {
-		return nil, fmt.Errorf("error while getting the genesis: %s", err)
+	minBlockHeight := r.chain.MinBlockHeight
+	if minBlockHeight == 0 {
+		genesis, err := r.node.Genesis()
+		if err != nil {
+			return nil, fmt.Errorf("error while getting the genesis: %s", err)
+		}
+
+		if timestamp.Before(genesis.Genesis.GenesisTime) {
+			// The timestamp is before the genesis, so just return as the chain didn't exist yet
+			return nil, nil
+		}
+
+		minBlockHeight = genesis.Genesis.InitialHeight
 	}
 
-	if timestamp.Before(genesis.Genesis.GenesisTime) {
-		return nil, nil
-	}
-
-	genesisHeight := genesis.Genesis.InitialHeight
-
-	latestHeight, err := r.node.LatestHeight()
+	maxBlockHeight, err := r.node.LatestHeight()
 	if err != nil {
 		return nil, fmt.Errorf("error while getting latest height: %s", err)
 	}
 
-	latestBlock, err := r.getBlockOrLatestHeight(latestHeight)
+	latestBlock, err := r.getBlockOrLatestHeight(maxBlockHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting latest block: %s", err)
 	}
@@ -78,7 +82,7 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 	}
 
 	// Perform the binary search
-	block, err := r.binarySearchBlock(genesisHeight, latestHeight, timestamp)
+	block, err := r.binarySearchBlock(minBlockHeight, maxBlockHeight, timestamp)
 	if err != nil {
 		return nil, err
 	}

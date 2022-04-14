@@ -25,11 +25,12 @@ type ReportConfig struct {
 }
 
 type ChainConfig struct {
-	Name         string `yaml:"name"`
-	RPCAddress   string `yaml:"rpcAddress"`
-	GRPCAddress  string `yaml:"grpcAddress"`
-	AssetName    string `yaml:"asset"`
-	Bech32Prefix string `yaml:"bech32Prefix"`
+	Name           string `yaml:"name"`
+	RPCAddress     string `yaml:"rpcAddress"`
+	GRPCAddress    string `yaml:"grpcAddress"`
+	AssetName      string `yaml:"asset"`
+	Bech32Prefix   string `yaml:"bech32Prefix"`
+	MinBlockHeight int64  `yaml:"minBlockHeight"`
 }
 
 type AccountConfig struct {
