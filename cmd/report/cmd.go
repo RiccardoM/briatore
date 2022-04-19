@@ -3,6 +3,7 @@ package report
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/riccardom/briatore/report"
@@ -21,9 +22,11 @@ const (
 // GetReportCmd returns the command to crete a report for a specific date
 func GetReportCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "report [date]",
-		Short:   "Reports the data for the provided addresses",
-		Example: "report cosmos-hub osmosis chihuahua",
+		Use:   "report [date] [addresses]",
+		Short: "Reports the data for the given date and provided addresses",
+		Long: `Creates a report for the provided date and the given addresses.
+The provided addresses must be comma separated.`,
+		Example: "report 2021-12-31T23:59:59Z cosmos1...,juno1....",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SetOut(os.Stdout)
@@ -38,6 +41,8 @@ func GetReportCmd() *cobra.Command {
 				return err
 			}
 
+			addresses := strings.Split(args[1], ",")
+
 			outValue, err := cmd.Flags().GetString(flagOutput)
 			if err != nil {
 				return err
@@ -48,7 +53,7 @@ func GetReportCmd() *cobra.Command {
 				return err
 			}
 
-			bz, err := report.GetReportBytes(cfg, cfg.Addresses, date, out)
+			bz, err := report.GetReportBytes(cfg, addresses, date, out)
 			if err != nil {
 				return err
 			}

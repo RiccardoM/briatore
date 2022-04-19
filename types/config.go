@@ -15,9 +15,8 @@ var (
 )
 
 type Config struct {
-	Report    *ReportConfig  `yaml:"report"`
-	Chains    []*ChainConfig `yaml:"chains"`
-	Addresses []string       `yaml:"addresses"`
+	Report *ReportConfig  `yaml:"report"`
+	Chains []*ChainConfig `yaml:"chains"`
 }
 
 type ReportConfig struct {

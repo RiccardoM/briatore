@@ -12,7 +12,7 @@ Balances are returned both in amount of coins as well the corresponding amount o
 2. Install the binary running `make install`
 3. Run the script with the following command: 
     ```
-   briatore report 2021-12-31T23:59:59Z --home /path/to/dir/where/config/file/is
+   briatore report 2021-12-31T23:59:59Z cosmos1...,juno1... --home /path/to/dir/where/config/file/is
    ```
    
 ## Example config file
@@ -21,50 +21,13 @@ report:
   currency: "eur"
 
 chains:
+   - name: "Osmosis"
+     rpcAddress: "https://rpc.osmosis.forbole.com:443"
+     grpcAddress: "https://grpc.osmosis.forbole.com:443"
+     bech32Prefix: "osmo"
+
   - name: "Cosmos"
-    rpc_address: "https://65.21.93.108:10457"
-    grpc_address: "https://65.21.93.108:10490"
-  - name: "Akash Network"
-    rpc_address: "https://rpc.akash.forbole.com:443"
-    grpc_address: "https://grpc.akash.forbole.com:443"
-  - name: "Cronos"
-    rpc_address: "https://rpc.crypto-org.forbole.com:443"
-    grpc_address: "https://grpc.crypto-org.forbole.com:443"
-  - name: "Regen"
-    rpc_address: "https://rpc.regen.forbole.com:443"
-    grpc_address: "https://grpc.regen.forbole.com:443"
-  - name: "e-Money"
-    rpc_address: "https://rpc.emoney.forbole.com:443"
-    grpc_address: "https://grpc.emoney.forbole.com:443"
-  - name: "Likecoin"
-    rpc_address: "https://rpc.likecoin.forbole.com:443"
-    grpc_address: "https://grpc.likecoin.forbole.com:443"
-  - name: "Terra"
-    rpc_address: "https://rpc.terra.forbole.com:443"
-    grpc_address: "https://grpc.terra.forbole.com:443"
-  - name: "Bitsong"
-    rpc_address: "https://rpc.bitsong.forbole.com:443"
-    grpc_address: "https://grpc.bitsong.forbole.com:443"
-  - name: "Desmos"
-    rpc_address: "https://rpc.desmos.forbole.com:443"
-    grpc_address: "https://grpc.desmos.forbole.com:443"
-  - name: "Band"
-    rpc_address: "https://rpc.band.forbole.com:443"
-    grpc_address: "https://grpc.band.forbole.com:443"
-  - name: "Sifchain"
-    rpc_address: "https://rpc.sifchain.forbole.com:443"
-    grpc_address: "https://grpc.sifchain.forbole.com:443"
-
-accounts:
-  - chain: "Cosmos"
-    addresses:
-      - "<Your Cosmos Hub address>"
-  
-  - chain: "Akash Network"
-    addresses:
-      - "<Your Akash Network address>"
-
-  - chain: "Cronos"
-    addresses:
-      - "<Your Chronos address>"
+    rpcAddress: "https://rpc.cosmoshub.forbole.com:443"
+    grpcAddress: "https://grpc.cosmoshub.forbole.com:443"
+    bech32Prefix: "cosmos"
 ```
