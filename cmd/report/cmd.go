@@ -48,12 +48,17 @@ The provided addresses must be comma separated.`,
 				return err
 			}
 
+			result := report.GetReport(cfg, addresses, date)
+			if result.IsError() {
+				return result.Err()
+			}
+
 			out, err := types.ParseOutput(outValue)
 			if err != nil {
 				return err
 			}
 
-			bz, err := report.GetReportBytes(cfg, addresses, date, out)
+			bz, err := report.MarshalAmounts(result.GetAmounts(), out)
 			if err != nil {
 				return err
 			}

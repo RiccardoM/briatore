@@ -14,7 +14,6 @@ import (
 const (
 	addressesParam = "addresses"
 	dateParam      = "date"
-	outputParam    = "output"
 )
 
 // GetReportHandler returns the APIs handler to get a report
@@ -32,32 +31,16 @@ func GetReportHandler(cfg *types.Config) func(c *gin.Context) {
 			return
 		}
 
-		outParam := c.Query(outputParam)
-		if outParam == "" {
-			outParam = types.OutText.String()
-		}
+		id := types.RandomReportID()
+		go ComputeReport(cfg, id, addresses, date)
 
-		output, err := types.ParseOutput(outParam)
-		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
-		}
-
-		bz, err := report.GetReportBytes(cfg, addresses, date, output)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		var contentType string
-		switch output {
-		case types.OutJSON:
-			contentType = "application/json"
-		case types.OutCSV:
-			contentType = "text/csv"
-		case types.OutText:
-			contentType = "text/plain"
-		}
-
-		c.Data(http.StatusOK, contentType, bz)
+		c.String(http.StatusOK, "Report queued. Your id is %s", id)
 	}
+}
+
+// ComputeReport computes the result of the report for the provided addresses and date,
+// storing it associated with the given id.
+func ComputeReport(cfg *types.Config, id types.ReportID, addresses []string, date time.Time) {
+	result := report.GetReport(cfg, addresses, date)
+	_ = StoreResults(id, result)
 }

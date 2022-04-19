@@ -1,8 +1,59 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/hashicorp/go-uuid"
 )
+
+type ReportID string
+
+func RandomReportID() ReportID {
+	id, _ := uuid.GenerateUUID()
+	return ReportID(id)
+}
+
+func ParseReportID(value string) ReportID {
+	return ReportID(value)
+}
+
+func (r ReportID) String() string {
+	return string(r)
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+type ReportResult struct {
+	Error   string         `json:"error"`
+	Amounts []AmountOutput `json:"amounts"`
+}
+
+func NewErrorReportResult(err error) *ReportResult {
+	return &ReportResult{
+		Error: err.Error(),
+	}
+}
+
+func NewAmountsReportResult(amounts []AmountOutput) *ReportResult {
+	return &ReportResult{
+		Amounts: amounts,
+	}
+}
+
+func (r ReportResult) IsError() bool {
+	return r.Error != ""
+}
+
+func (r ReportResult) Err() error {
+	return fmt.Errorf(r.Error)
+}
+
+func (r ReportResult) GetAmounts() []AmountOutput {
+	return r.Amounts
+}
+
+// --------------------------------------------------------------------------------------------------------------------
 
 type Amount struct {
 	Asset  *Asset  `yaml:"asset" json:"asset"`

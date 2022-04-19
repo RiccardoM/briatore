@@ -8,6 +8,7 @@ require (
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gocarina/gocsv v0.0.0-20220310154401-d4df709ca055
+	github.com/hashicorp/go-uuid v1.0.1
 	github.com/osmosis-labs/osmosis/v7 v7.1.0
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/cobra v1.3.0

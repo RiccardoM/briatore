@@ -40,7 +40,8 @@ func GetStartCmd() *cobra.Command {
 			r.Use(cors.New(ginCfg))
 
 			// Register the endpoints
-			r.GET("/report", apis.GetReportHandler(cfg))
+			r.GET("/reports", apis.GetReportHandler(cfg))
+			r.GET("/results", apis.GetResultHandler())
 
 			port, _ := cmd.Flags().GetUint(flagPort)
 			return r.Run(fmt.Sprintf(":%d", port))

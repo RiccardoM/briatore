@@ -43,9 +43,9 @@ func ReadConfig(cmd *cobra.Command) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	homePath = home
+	HomePath = home
 
-	cfgPath := path.Join(homePath, configFileName)
+	cfgPath := path.Join(HomePath, configFileName)
 	log.Debug().Str("home", cfgPath).Msg("reading config file")
 
 	bz, err := ioutil.ReadFile(cfgPath)

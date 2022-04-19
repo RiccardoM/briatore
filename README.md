@@ -39,18 +39,31 @@ chains:
 Aside from the `report` command, Briatore also contains the `start` command that allows to start a new REST server exposing the following endpoints.
 
 ### Endpoints
-#### GET `/report`
-Returns the report data for the provided addresses and date, in the given output format. 
+#### `GET /reports`
+Starts the computation of a report for the provided addresses and date, in the given output format.  
+Returns the id of the computation that you will need to send to the `GET /results` endpoint to get the results.
 
 |  Parameter  |                             Type                             | Description                                                                    |
 |:-----------:|:------------------------------------------------------------:|:-------------------------------------------------------------------------------|
 |   `date`    | [RFC339 Date](https://datatracker.ietf.org/doc/html/rfc3339) | Date for which to get the report (ideally end of year - `2021-12-31T23:59:59Z` |
 | `addresses` |                String <br/>(comma separated)                 | List of addresses for which to get the report                                  |
-|  `outpout`  |                            String                            | Format in which to return the data (supported formats: `csv`, `text`, `json`)  |
+
+
+#### `GET /results`
+Returns the results of a computation process in the provided format, if it has already ended.
+
+| Parameter |  Type  | Description                                                                   |
+|:---------:|:------:|:------------------------------------------------------------------------------|
+|   `id`    | String | Id of the computation process returned by the `GET /reports` endpoint         |
+| `outpout` | String | Format in which to return the data (supported formats: `csv`, `text`, `json`) |
 
 ### Live instance 
 If you don't want to run your own instance by specifying your own nodes, you can use the one running at `http://162.55.171.213:8080/`:
 
 ```
-http://162.55.171.213:8080/report?output=csv&date=2021-12-31T23:59:59Z&addresses=cosmos1...,juno1...
+# Start a report computation
+http://162.55.171.213:8080/reports?date=2021-12-31T23:59:59Z&addresses=cosmos1...,juno1...
+
+# Get the report results
+http://162.55.171.213:8080/results?outpu=text&id=75c5e414-090f-7908-f002-a296df0f2af6
 ```

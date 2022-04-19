@@ -1,5 +1,5 @@
 package types
 
 var (
-	homePath = ""
+	HomePath = ""
 )

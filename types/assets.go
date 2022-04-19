@@ -85,7 +85,7 @@ type assetsResponse struct {
 // GetAssets returns the list of supported assets
 func GetAssets() (Assets, error) {
 	// Read the stored assets
-	bz, err := ioutil.ReadFile(path.Join(homePath, assetFile))
+	bz, err := ioutil.ReadFile(path.Join(HomePath, assetFile))
 	if os.IsNotExist(err) {
 		// Get the assets from online
 		assets, err := RefreshAssets()
@@ -140,7 +140,7 @@ func writeAssets(assets Assets) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path.Join(homePath, assetFile), bz, 0600)
+	return ioutil.WriteFile(path.Join(HomePath, assetFile), bz, 0600)
 }
 
 func GetBaseNativeDenom(chainName string) (string, error) {

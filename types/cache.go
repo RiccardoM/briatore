@@ -21,7 +21,7 @@ type Cache struct {
 
 func readCache() (Cache, error) {
 	// Read the cache
-	bz, err := ioutil.ReadFile(path.Join(homePath, cacheFileName))
+	bz, err := ioutil.ReadFile(path.Join(HomePath, cacheFileName))
 	if os.IsNotExist(err) {
 		return Cache{}, nil
 	}
@@ -39,7 +39,7 @@ func writeCache(cache Cache) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path.Join(homePath, cacheFileName), bz, 0600)
+	return ioutil.WriteFile(path.Join(HomePath, cacheFileName), bz, 0600)
 }
 
 // --------------------------------------------------------------------------------------------------------------------

@@ -14,9 +14,9 @@ import (
 	"github.com/riccardom/briatore/types"
 )
 
-// GetReportBytes returns the serialized report bytes for the given configuration, addresses and date.
+// GetReport returns the serialized report bytes for the given configuration, addresses and date.
 // The report will be serialized properly based on the given output type.
-func GetReportBytes(cfg *types.Config, addresses []string, date time.Time, output types.Output) ([]byte, error) {
+func GetReport(cfg *types.Config, addresses []string, date time.Time) *types.ReportResult {
 	cdc, _ := app.MakeCodecs()
 
 	var amounts []*types.Amount
@@ -25,7 +25,7 @@ func GetReportBytes(cfg *types.Config, addresses []string, date time.Time, outpu
 
 		addresses, err := types.GetUniqueSupportedAddresses(chain, addresses)
 		if err != nil {
-			return nil, err
+			return types.NewErrorReportResult(err)
 		}
 
 		if len(addresses) == 0 {
@@ -52,22 +52,20 @@ func GetReportBytes(cfg *types.Config, addresses []string, date time.Time, outpu
 		log.Info().Str("chain", chain.Name).Msg("report retrieved")
 	}
 
-	// Merge the various amounts
-	amounts = types.MergeSameAssetsAmounts(amounts)
-	amountsOutput := types.Format(amounts)
+	// Merge the various amounts and format them
+	return types.NewAmountsReportResult(types.Format(types.MergeSameAssetsAmounts(amounts)))
+}
 
-	var bz []byte
-	var err error
+// MarshalAmounts marshals the given amount based on the provided output
+func MarshalAmounts(amounts []types.AmountOutput, output types.Output) ([]byte, error) {
 	switch output {
 	case types.OutText:
-		bz, err = yaml.Marshal(&amountsOutput)
+		return yaml.Marshal(&amounts)
 	case types.OutJSON:
-		bz, err = json.Marshal(&amountsOutput)
+		return json.Marshal(&amounts)
 	case types.OutCSV:
-		bz, err = gocsv.MarshalBytes(&amountsOutput)
+		return gocsv.MarshalBytes(&amounts)
 	default:
-		err = fmt.Errorf("invalid output value: %s", output)
+		return nil, fmt.Errorf("invalid output value: %s", output)
 	}
-
-	return bz, err
 }
