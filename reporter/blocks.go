@@ -116,6 +116,11 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 	}
 
 	if maxBlock.Block.Height-minBlock.Block.Height == 1 {
+		// If the min block is before, and the max block is after the timestamp we just return the min block
+		if minBlock.Block.Time.Before(timestamp) && maxBlock.Block.Time.After(timestamp) {
+			return minBlock.Block, nil
+		}
+
 		// We've reached the point where we only have two blocks.
 		// Now we need to find the one that is closer to the searched timestamp
 		minDiff := timestamp.Sub(minBlock.Block.Time)
