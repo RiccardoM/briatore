@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	reportcmd "github.com/riccardom/briatore/cmd/report"
+	startcmd "github.com/riccardom/briatore/cmd/start"
 
 	junocmd "github.com/forbole/juno/v3/cmd"
 )
@@ -27,6 +28,7 @@ func main() {
 	}
 	rootCmd.AddCommand(
 		reportcmd.GetReportCmd(),
+		startcmd.GetStartCmd(),
 	)
 
 	exec := junocmd.PrepareRootCmd(config.GetName(), rootCmd)

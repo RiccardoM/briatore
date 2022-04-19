@@ -1,34 +1,24 @@
 package report
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-
-	"github.com/gocarina/gocsv"
-
-	"gopkg.in/yaml.v3"
+	"github.com/riccardom/briatore/report"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/riccardom/briatore/reporter"
 	"github.com/riccardom/briatore/types"
 )
 
 const (
 	flagFile   = "file"
 	flagOutput = "output"
-
-	outText = "text"
-	outJSON = "json"
-	outCSV  = "csv"
 )
 
+// GetReportCmd returns the command to crete a report for a specific date
 func GetReportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "report [date]",
@@ -48,59 +38,17 @@ func GetReportCmd() *cobra.Command {
 				return err
 			}
 
-			cdc, _ := app.MakeCodecs()
-
-			var amounts []*types.Amount
-			for _, chain := range cfg.Chains {
-				log.Info().Str("chain", chain.Name).Msg("getting report")
-
-				// TODO: Get the addresses from the user
-				addresses, err := types.GetUniqueSupportedAddresses(chain, cfg.Addresses)
-				if err != nil {
-					return err
-				}
-
-				if len(addresses) == 0 {
-					log.Info().Str("chain", chain.Name).Msg("no supported addresses found, skipping")
-					continue
-				}
-
-				log.Debug().Str("chain", chain.Name).Msg("creating reporter")
-				rep, err := reporter.NewReporter(chain, cdc)
-				if err != nil {
-					log.Error().Str("chain", chain.Name).Err(err).Msg("error while creating the reporter")
-					continue
-				}
-
-				log.Debug().Str("chain", chain.Name).Msg("getting report data")
-				chainAmounts, err := rep.GetAmounts(addresses, date, cfg.Report)
-				if err != nil {
-					log.Error().Str("chain", chain.Name).Err(err).Msg("error while getting the amounts")
-					continue
-				}
-
-				amounts = append(amounts, chainAmounts...)
-
-				log.Info().Str("chain", chain.Name).Msg("report retrieved")
+			outValue, err := cmd.Flags().GetString(flagOutput)
+			if err != nil {
+				return err
 			}
 
-			// Merge the various amounts
-			amounts = types.MergeSameAssetsAmounts(amounts)
-			amountsOutput := types.Format(amounts)
-
-			var bz []byte
-			output, _ := cmd.Flags().GetString(flagOutput)
-			switch output {
-			case outText:
-				bz, err = yaml.Marshal(&amountsOutput)
-			case outJSON:
-				bz, err = json.Marshal(&amountsOutput)
-			case outCSV:
-				bz, err = gocsv.MarshalBytes(&amountsOutput)
-			default:
-				return fmt.Errorf("invalid output value: %s", output)
+			out, err := types.ParseOutput(outValue)
+			if err != nil {
+				return err
 			}
 
+			bz, err := report.GetReportBytes(cfg, cfg.Addresses, date, out)
 			if err != nil {
 				return err
 			}
@@ -118,7 +66,7 @@ func GetReportCmd() *cobra.Command {
 	}
 
 	cmd.Flags().String(flagFile, "", "File where to store the reports")
-	cmd.Flags().String(flagOutput, outText, "Type of output (supported values: json, text)")
+	cmd.Flags().String(flagOutput, types.OutText.String(), "Type of output (supported values: json, text)")
 
 	return cmd
 }
