@@ -53,7 +53,7 @@ Returns the results of a computation process in the provided format, if it has a
 | Parameter |  Type  | Description                                                                   |
 |:---------:|:------:|:------------------------------------------------------------------------------|
 |   `id`    | String | Id of the computation process returned by the `GET /reports` endpoint         |
-| `outpout` | String | Format in which to return the data (supported formats: `csv`, `text`, `json`) |
+|  `output` | String | Format in which to return the data (supported formats: `csv`, `text`, `json`) |
 
 ### Live instance 
 If you don't want to run your own instance by specifying your own nodes, you can use the one running at `http://162.55.171.213:8080/`:
@@ -63,5 +63,5 @@ If you don't want to run your own instance by specifying your own nodes, you can
 http://162.55.171.213:8080/reports?date=2021-12-31T23:59:59Z&addresses=cosmos1...,juno1...
 
 # Get the report results
-http://162.55.171.213:8080/results?outpu=text&id=75c5e414-090f-7908-f002-a296df0f2af6
+http://162.55.171.213:8080/results?output=text&id=75c5e414-090f-7908-f002-a296df0f2af6
 ```
