@@ -10,10 +10,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/forbole/juno/v3/node/remote"
 	"github.com/rs/zerolog/log"
 
+	"github.com/riccardom/briatore/cosmos"
 	"github.com/riccardom/briatore/types"
+	"github.com/riccardom/briatore/utils"
 )
 
 type Reporter struct {
@@ -24,25 +25,19 @@ type Reporter struct {
 	grpcConnection *grpc.ClientConn
 	grpcHeaders    map[string]string
 
-	node *remote.Node
-
+	client        CosmosClient
 	bankClient    banktypes.QueryClient
 	stakingClient stakingtypes.QueryClient
 }
 
 func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
-	grpcAddress, insecure, headers := types.ParseGRPCAddress(cfg.GRPCAddress)
-	remoteCfg := remote.NewDetails(
-		remote.NewRPCConfig("briatore", cfg.RPCAddress, 10),
-		remote.NewGrpcConfig(grpcAddress, insecure),
-	)
-
-	node, err := remote.NewNode(remoteCfg, cdc)
+	grpcAddress, headers := utils.ParseGRPCAddress(cfg.GRPCAddress)
+	grpcConnection, err := utils.CreateGrpcConnection(grpcAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	grpcConnection, err := remote.CreateGrpcConnection(remoteCfg.GRPC)
+	cosmosClient, err := cosmos.NewClient(cfg.RPCAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +47,7 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 		chain:          cfg,
 		grpcConnection: grpcConnection,
 		grpcHeaders:    headers,
-		node:           node,
+		client:         cosmosClient,
 		bankClient:     banktypes.NewQueryClient(grpcConnection),
 		stakingClient:  stakingtypes.NewQueryClient(grpcConnection),
 	}, nil
@@ -62,8 +57,6 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 // If the provided timestamp is before the genesis, an empty report will be returned instead.
 // NOTE. Calling this method will close the node as soon as it returns
 func (r *Reporter) GetAmounts(addresses []string, timestamp time.Time, cfg *types.ReportConfig) ([]*types.Amount, error) {
-	defer r.stop()
-
 	blockData, err := r.getBlockNearTimestamp(timestamp)
 	if err != nil {
 		return nil, err
@@ -158,15 +151,11 @@ func (r *Reporter) getCoinsAmounts(timestamp time.Time, coins sdk.Coins, cfg *ty
 		}
 
 		// Compute the token value
-		tokenAmount := coin.Amount.ToDec().QuoInt(types.GetPower(asset.GetMaxExponent()))
+		tokenAmount := coin.Amount.ToLegacyDec().QuoInt(types.GetPower(asset.GetMaxExponent()))
 		tokenValue := tokenAmount.Mul(tokenPriceDec)
 
 		amounts = append(amounts, types.NewAmount(asset, tokenAmount, tokenValue))
 	}
 
 	return amounts, nil
-}
-
-func (r *Reporter) stop() {
-	r.node.Stop()
 }

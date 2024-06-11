@@ -4,8 +4,7 @@ import (
 	"strings"
 
 	"github.com/riccardom/briatore/reporter/osmosis"
-
-	"github.com/riccardom/briatore/types"
+	"github.com/riccardom/briatore/utils"
 
 	"github.com/rs/zerolog/log"
 
@@ -18,7 +17,7 @@ import (
 func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting balance amount")
 
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
 	balance := sdk.NewCoins()
 	var nextKey []byte
@@ -45,7 +44,7 @@ func (r *Reporter) getBalanceAmount(address string, height int64) (sdk.Coins, er
 func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting delegations amount")
 
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.DelegationResponse
 	var nextKey []byte
@@ -81,7 +80,7 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting redelegations amount")
 
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.RedelegationResponse
 	var nextKey []byte
@@ -115,7 +114,7 @@ func (r *Reporter) getReDelegationsAmount(address string, bondDenom string, heig
 func (r *Reporter) getUnbondingDelegationsAmount(address string, bondDenom string, height int64) (sdk.Coins, error) {
 	log.Debug().Str("chain", r.chain.Name).Int64("height", height).Msg("getting unbonding delegations amount")
 
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
 	var delegations []stakingtypes.UnbondingDelegation
 	var nextKey []byte

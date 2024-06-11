@@ -7,11 +7,11 @@ import (
 
 	"github.com/riccardom/briatore/types"
 
-	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/rs/zerolog/log"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // getBlockNearTimestamp returns the block nearest the given timestamp.
@@ -52,7 +52,7 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 
 	minBlockHeight := r.chain.MinBlockHeight
 	if minBlockHeight == 0 {
-		genesis, err := r.node.Genesis()
+		genesis, err := r.client.Genesis()
 		if err != nil {
 			return nil, fmt.Errorf("error while getting the genesis: %s", err)
 		}
@@ -65,7 +65,7 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 		minBlockHeight = genesis.Genesis.InitialHeight
 	}
 
-	maxBlockHeight, err := r.node.LatestHeight()
+	maxBlockHeight, err := r.client.LatestHeight()
 	if err != nil {
 		return nil, fmt.Errorf("error while getting latest height: %s", err)
 	}
@@ -164,7 +164,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 // getBlockOrMinHeight gets the block at the given height, or the min height available if not found
 func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, error) {
-	block, err := r.node.Block(height)
+	block, err := r.client.Block(height)
 
 	if err != nil {
 		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
@@ -178,7 +178,7 @@ func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, err
 				Int64("height", height).Int64("lowest height", lowestHeight).
 				Msg("height not found, getting lowest height")
 
-			return r.node.Block(lowestHeight)
+			return r.client.Block(lowestHeight)
 		}
 
 		return nil, err
@@ -189,7 +189,7 @@ func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, err
 
 // getBlockOrLatestHeight gets the block at the given height, or the max height available if not found
 func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, error) {
-	block, err := r.node.Block(height)
+	block, err := r.client.Block(height)
 
 	if err != nil {
 		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
@@ -203,7 +203,7 @@ func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, 
 				Int64("height", height).Int64("max height", maxHeight).
 				Msg("height not found, getting max height")
 
-			return r.node.Block(maxHeight)
+			return r.client.Block(maxHeight)
 		}
 
 		return nil, err

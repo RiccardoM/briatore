@@ -4,10 +4,9 @@ import (
 	"io/ioutil"
 	"path"
 
-	junocmd "github.com/forbole/juno/v3/cmd"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -39,7 +38,7 @@ type AccountConfig struct {
 
 // ReadConfig reads the config from the given command
 func ReadConfig(cmd *cobra.Command) (*Config, error) {
-	home, err := cmd.Flags().GetString(junocmd.FlagHome)
+	home, err := cmd.Flags().GetString("home")
 	if err != nil {
 		return nil, err
 	}

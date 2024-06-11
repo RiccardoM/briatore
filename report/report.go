@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gocarina/gocsv"
-	"github.com/osmosis-labs/osmosis/v7/app"
+	"github.com/osmosis-labs/osmosis/v25/app"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 

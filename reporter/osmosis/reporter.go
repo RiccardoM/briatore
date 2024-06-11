@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	lockuptypes "github.com/osmosis-labs/osmosis/v25/x/lockup/types"
 
 	"github.com/riccardom/briatore/types"
+	"github.com/riccardom/briatore/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	gammtypes "github.com/osmosis-labs/osmosis/v25/x/gamm/types"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
@@ -80,32 +81,32 @@ func (r *Reporter) convertPoolShares(gammToken sdk.Coin, height int64) (sdk.Coin
 	}
 
 	// Get the pool data
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
 	poolRes, err := r.gammQueryClient.Pool(ctx, &gammtypes.QueryPoolRequest{PoolId: poolID})
 	if err != nil {
 		return nil, fmt.Errorf("error while querying the pool: %s", err)
 	}
 
-	var pool gammtypes.PoolI
+	var pool gammtypes.CFMMPoolI
 	err = r.cdc.UnpackAny(poolRes.Pool, &pool)
 	if err != nil {
 		return nil, err
 	}
 
 	// Compute the share ratio
-	shareRatio := gammToken.Amount.ToDec().QuoInt(pool.GetTotalShares().Amount).MulInt(types.GetPower(2))
+	shareRatio := gammToken.Amount.ToLegacyDec().QuoInt(pool.GetTotalShares()).MulInt(types.GetPower(2))
 
-	var balance sdk.Coins
-	for _, asset := range pool.GetAllPoolAssets() {
-		balance = balance.Add(sdk.NewCoin(asset.Token.Denom, shareRatio.MulInt(asset.Token.Amount).RoundInt().Quo(sdk.NewInt(100))))
+	balance := sdk.NewCoins()
+	for _, asset := range pool.GetTotalPoolLiquidity(sdk.Context{}) {
+		balance = balance.Add(sdk.NewCoin(asset.Denom, shareRatio.MulInt(asset.Amount).RoundInt().Quo(sdk.NewInt(100))))
 	}
 
 	return balance, nil
 }
 
 func (r *Reporter) getUnlockableAmount(address string, height int64) (sdk.Coins, error) {
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 	res, err := r.lockupQueryClient.AccountUnlockableCoins(ctx, &lockuptypes.AccountUnlockableCoinsRequest{
 		Owner: address,
 	})
@@ -117,7 +118,7 @@ func (r *Reporter) getUnlockableAmount(address string, height int64) (sdk.Coins,
 }
 
 func (r *Reporter) getUnlockingAmount(address string, height int64) (sdk.Coins, error) {
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 	res, err := r.lockupQueryClient.AccountUnlockingCoins(ctx, &lockuptypes.AccountUnlockingCoinsRequest{
 		Owner: address,
 	})
@@ -129,7 +130,7 @@ func (r *Reporter) getUnlockingAmount(address string, height int64) (sdk.Coins, 
 }
 
 func (r *Reporter) getLockedAmount(address string, height int64) (sdk.Coins, error) {
-	ctx := types.GetRequestContext(height, r.grpcHeaders)
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 	res, err := r.lockupQueryClient.AccountLockedCoins(ctx, &lockuptypes.AccountLockedCoinsRequest{
 		Owner: address,
 	})
