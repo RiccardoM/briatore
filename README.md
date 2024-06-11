@@ -27,10 +27,10 @@ chains:
      grpcAddress: "https://grpc....:443"
      bech32Prefix: "osmo"
 
-  - name: "Cosmos"
-    rpcAddress: "https://rpc....:443"
-    grpcAddress: "https://grpc....:443"
-    bech32Prefix: "cosmos"
+   - name: "Cosmos"
+     rpcAddress: "https://rpc....:443"
+     grpcAddress: "https://grpc....:443"
+     bech32Prefix: "cosmos"
 ```
 
 ## APIs
