@@ -1,6 +1,3 @@
-VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
-COMMIT  := $(shell git log -1 --format='%H')
-
 export GO111MODULE = on
 
 ###############################################################################
@@ -35,6 +32,7 @@ install: go.sum
 ###############################################################################
 ###                           Tests & Simulation                            ###
 ###############################################################################
+golangci_lint_cmd=github.com/golangci/golangci-lint/cmd/golangci-lint
 
 coverage:
 	@echo "viewing test coverage..."
@@ -47,11 +45,11 @@ test-unit:
 .PHONY: test-unit
 
 lint:
-	golangci-lint run --out-format=tab
+	@go run $(golangci_lint_cmd) run --out-format=tab
 .PHONY: lint
 
 lint-fix:
-	golangci-lint run --fix --out-format=tab --issues-exit-code=0
+	@go run $(golangci_lint_cmd) run --fix --out-format=tab --issues-exit-code=0
 .PHONY: lint-fix
 
 format:
