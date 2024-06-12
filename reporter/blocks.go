@@ -10,7 +10,6 @@ import (
 
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 
-	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/rs/zerolog/log"
 )
@@ -53,31 +52,16 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 
 	minBlockHeight := r.chain.MinBlockHeight
 	if minBlockHeight == 0 {
-		genesis, err := r.client.Genesis()
+		minHeight, err := r.client.MinHeight()
 		if err != nil {
 			return nil, fmt.Errorf("error while getting the genesis: %w", err)
 		}
-
-		if timestamp.Before(genesis.Genesis.GenesisTime) {
-			// The timestamp is before the genesis, so just return as the chain didn't exist yet
-			return nil, nil
-		}
-
-		minBlockHeight = genesis.Genesis.InitialHeight
+		minBlockHeight = minHeight
 	}
 
 	maxBlockHeight, err := r.client.LatestHeight()
 	if err != nil {
 		return nil, fmt.Errorf("error while getting latest height: %w", err)
-	}
-
-	latestBlock, err := r.getBlockOrLatestHeight(maxBlockHeight)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting latest block: %w", err)
-	}
-
-	if timestamp.After(latestBlock.Block.Time) {
-		return nil, fmt.Errorf("%s is after latest block timw", timestamp)
 	}
 
 	// Perform the binary search
@@ -96,44 +80,53 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.Time) (*tmtypes.Block, error) {
 	log.Trace().Int64("min height", minHeight).Int64("max height", maxHeight).Time("timestamp", timestamp).Msg("binary search")
 
+	// Get the min block available or the genesis one if the given min height is not found
 	minBlock, err := r.getBlockOrMinHeight(minHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting min block: %w", err)
 	}
+	minHeight = minBlock.Height
 
-	if minBlock.Block.Time.Equal(timestamp) {
-		// The genesis has the same timestamp of what we are searching for
-		return minBlock.Block, nil
+	if minBlock.Time.Equal(timestamp) || minBlock.Time.After(timestamp) {
+		// The min block has a timestamp that is equals or after the given timestamp, so we can return this
+		return minBlock, nil
 	}
 
+	// Get the max block available or the latest one if the given max height is not found
 	maxBlock, err := r.getBlockOrLatestHeight(maxHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while gettingwmax block")
 	}
+	maxHeight = maxBlock.Height
 
-	if maxBlock.Block.Time.Equal(timestamp) {
-		// The latest block has the same timestamp we are searching for
-		return maxBlock.Block, nil
+	if maxBlock.Time.Equal(timestamp) || maxBlock.Time.Before(timestamp) {
+		// The max block has the timestamp equals or before the given timestamp, so we can end the research
+		return maxBlock, nil
 	}
 
-	if maxBlock.Block.Height-minBlock.Block.Height == 1 {
+	if maxBlock.Height-minBlock.Height == 0 {
+		// If the min block and max block have the same heights, return either one of the two
+		return minBlock, nil
+	}
+
+	if maxBlock.Height-minBlock.Height == 1 {
 		// If the min block is before, and the max block is after the timestamp we just return the min block
-		if minBlock.Block.Time.Before(timestamp) && maxBlock.Block.Time.After(timestamp) {
-			return minBlock.Block, nil
+		if minBlock.Time.Before(timestamp) && maxBlock.Time.After(timestamp) {
+			return minBlock, nil
 		}
 
 		// We've reached the point where we only have two blocks.
 		// Now we need to find the one that is closer to the searched timestamp
-		minDiff := timestamp.Sub(minBlock.Block.Time)
-		maxDiff := maxBlock.Block.Time.Sub(timestamp)
+		minDiff := timestamp.Sub(minBlock.Time)
+		maxDiff := maxBlock.Time.Sub(timestamp)
 
 		if minDiff < maxDiff {
 			// The min block is closer to the timestamp than the max block
-			return minBlock.Block, nil
+			return minBlock, nil
 		}
 
 		// The max block is closer to the timestamp than the min block
-		return maxBlock.Block, nil
+		return maxBlock, nil
 	}
 
 	avgHeight := (maxHeight + minHeight) / 2
@@ -143,28 +136,28 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 		return nil, fmt.Errorf("error while getting average block: %w", err)
 	}
 
-	if avgBlock.Block.Time.Equal(timestamp) {
+	if avgBlock.Time.Equal(timestamp) {
 		// The average block has the same timestamp as the one searched for
-		return avgBlock.Block, nil
+		return avgBlock, nil
 	}
 
-	if avgBlock.Block.Time.After(timestamp) {
+	if avgBlock.Time.After(timestamp) {
 		// If the average block has the timestamp after the searched value, it means the searched
 		// value is in between the min value and the average one
-		maxHeight = avgBlock.Block.Height
+		maxHeight = avgBlock.Height
 	}
 
-	if avgBlock.Block.Time.Before(timestamp) {
+	if avgBlock.Time.Before(timestamp) {
 		// If the average block has the timestamp before the searched value, it means the searched
 		// value is in between the average block and the max height
-		minHeight = avgBlock.Block.Height
+		minHeight = avgBlock.Height
 	}
 
 	return r.binarySearchBlock(minHeight, maxHeight, timestamp)
 }
 
 // getBlockOrMinHeight gets the block at the given height, or the min height available if not found
-func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, error) {
+func (r *Reporter) getBlockOrMinHeight(height int64) (*tmtypes.Block, error) {
 	block, err := r.client.Block(height)
 
 	if err != nil {
@@ -189,7 +182,7 @@ func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, err
 }
 
 // getBlockOrLatestHeight gets the block at the given height, or the max height available if not found
-func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, error) {
+func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmtypes.Block, error) {
 	block, err := r.client.Block(height)
 
 	if err != nil {

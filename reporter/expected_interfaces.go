@@ -1,11 +1,11 @@
 package reporter
 
 import (
-	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 )
 
 type CosmosClient interface {
-	Genesis() (*tmctypes.ResultGenesis, error)
+	MinHeight() (int64, error)
 	LatestHeight() (int64, error)
-	Block(height int64) (*tmctypes.ResultBlock, error)
+	Block(height int64) (*tmtypes.Block, error)
 }

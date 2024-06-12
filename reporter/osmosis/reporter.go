@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	gammtypes "github.com/osmosis-labs/osmosis/v25/x/gamm/types"
 	lockuptypes "github.com/osmosis-labs/osmosis/v25/x/lockup/types"
+	poolmanagergrpc "github.com/osmosis-labs/osmosis/v25/x/poolmanager/client/queryproto"
 
 	"github.com/riccardom/briatore/types"
 	"github.com/riccardom/briatore/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	gammtypes "github.com/osmosis-labs/osmosis/v25/x/gamm/types"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
@@ -20,16 +21,18 @@ type Reporter struct {
 
 	grpcHeaders map[string]string
 
-	gammQueryClient   gammtypes.QueryClient
-	lockupQueryClient lockuptypes.QueryClient
+	gammQueryClient        gammtypes.QueryClient
+	poolmanagerQueryClient poolmanagergrpc.QueryClient
+	lockupQueryClient      lockuptypes.QueryClient
 }
 
 func NewReporter(grpcConnection grpc.ClientConnInterface, grpcHeaders map[string]string, cdc codec.Codec) (*Reporter, error) {
 	return &Reporter{
-		cdc:               cdc,
-		grpcHeaders:       grpcHeaders,
-		gammQueryClient:   gammtypes.NewQueryClient(grpcConnection),
-		lockupQueryClient: lockuptypes.NewQueryClient(grpcConnection),
+		cdc:                    cdc,
+		grpcHeaders:            grpcHeaders,
+		gammQueryClient:        gammtypes.NewQueryClient(grpcConnection),
+		poolmanagerQueryClient: poolmanagergrpc.NewQueryClient(grpcConnection),
+		lockupQueryClient:      lockuptypes.NewQueryClient(grpcConnection),
 	}, nil
 }
 
@@ -73,33 +76,32 @@ func (r *Reporter) GetAmount(address string, height int64) (sdk.Coins, error) {
 
 // convertPoolShares converts the given GAMM token into the proper denoms
 func (r *Reporter) convertPoolShares(gammToken sdk.Coin, height int64) (sdk.Coins, error) {
+	ctx := utils.GetRequestContext(height, r.grpcHeaders)
+
 	// Get the pool id
-	var poolID uint64
-	_, err := fmt.Sscanf(gammToken.Denom, "gamm/pool/%d", &poolID)
+	poolID, err := utils.ParsePoolID(gammToken.Denom)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the pool data
-	ctx := utils.GetRequestContext(height, r.grpcHeaders)
-
-	//nolint:staticcheck // This query is still useful
-	poolRes, err := r.gammQueryClient.Pool(ctx, &gammtypes.QueryPoolRequest{PoolId: poolID})
+	// Get the pool liquidity and total shares
+	poolLiquidityRes, err := r.poolmanagerQueryClient.TotalPoolLiquidity(ctx, &poolmanagergrpc.TotalPoolLiquidityRequest{PoolId: poolID})
 	if err != nil {
 		return nil, fmt.Errorf("error while querying the pool: %w", err)
 	}
+	poolLiquidity := poolLiquidityRes.Liquidity
 
-	var pool gammtypes.CFMMPoolI
-	err = r.cdc.UnpackAny(poolRes.Pool, &pool)
+	poolSharesRes, err := r.gammQueryClient.TotalShares(ctx, &gammtypes.QueryTotalSharesRequest{PoolId: poolID})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while querying the pool: %w", err)
 	}
+	poolShares := poolSharesRes.TotalShares
 
 	// Compute the share ratio
-	shareRatio := gammToken.Amount.ToLegacyDec().QuoInt(pool.GetTotalShares()).MulInt(types.GetPower(2))
+	shareRatio := gammToken.Amount.ToLegacyDec().QuoInt(poolShares.Amount).MulInt(types.GetPower(2))
 
 	balance := sdk.NewCoins()
-	for _, asset := range pool.GetTotalPoolLiquidity(sdk.Context{}) {
+	for _, asset := range poolLiquidity {
 		balance = balance.Add(sdk.NewCoin(asset.Denom, shareRatio.MulInt(asset.Amount).RoundInt().Quo(sdk.NewInt(100))))
 	}
 

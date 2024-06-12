@@ -2,14 +2,10 @@ package cosmos
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strings"
 
-	tmjson "github.com/cometbft/cometbft/libs/json"
 	httpclient "github.com/cometbft/cometbft/rpc/client/http"
-	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	jsonrpcclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 	tmtypes "github.com/cometbft/cometbft/types"
 )
@@ -48,65 +44,16 @@ func NewClient(rpcAddress string) (*Client, error) {
 	}, nil
 }
 
-// Genesis returns the genesis file
-func (cp *Client) Genesis() (*tmctypes.ResultGenesis, error) {
-	res, err := cp.client.Genesis(cp.ctx)
-	if err != nil && strings.Contains(err.Error(), "use the genesis_chunked API instead") {
-		return cp.getGenesisChunked()
+// MinHeight returns the minimum height of the chain
+func (cp *Client) MinHeight() (int64, error) {
+	res, err := cp.client.Status(cp.ctx)
+	if err != nil {
+		return 0, err
 	}
-	return res, err
+	return res.SyncInfo.EarliestBlockHeight, nil
 }
 
-// getGenesisChunked gets the genesis data using the chinked API instead
-func (cp *Client) getGenesisChunked() (*tmctypes.ResultGenesis, error) {
-	bz, err := cp.getGenesisChunksStartingFrom(0)
-	if err != nil {
-		return nil, err
-	}
-
-	var genDoc *tmtypes.GenesisDoc
-	err = tmjson.Unmarshal(bz, &genDoc)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tmctypes.ResultGenesis{Genesis: genDoc}, nil
-}
-
-// getGenesisChunksStartingFrom returns all the genesis chunks data starting from the chunk with the given id
-func (cp *Client) getGenesisChunksStartingFrom(id uint) ([]byte, error) {
-	res, err := cp.client.GenesisChunked(cp.ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting genesis chunk %d", id)
-	}
-
-	bz, err := base64.StdEncoding.DecodeString(res.Data)
-	if err != nil {
-		return nil, fmt.Errorf("error while decoding genesis chunk %d out of %d", id, res.TotalChunks)
-	}
-
-	if id == uint(res.TotalChunks-1) {
-		return bz, nil
-	}
-
-	nextChunk, err := cp.getGenesisChunksStartingFrom(id + 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(bz, nextChunk...), nil
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
-// Block returns the block having the given height
-func (cp *Client) Block(height int64) (*tmctypes.ResultBlock, error) {
-	return cp.client.Block(cp.ctx, &height)
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
-// LatestHeight implements node.Node
+// LatestHeight returns the latest height of the chain
 func (cp *Client) LatestHeight() (int64, error) {
 	status, err := cp.client.Status(cp.ctx)
 	if err != nil {
@@ -115,4 +62,13 @@ func (cp *Client) LatestHeight() (int64, error) {
 
 	height := status.SyncInfo.LatestBlockHeight
 	return height, nil
+}
+
+// Block returns the block having the given height
+func (cp *Client) Block(height int64) (*tmtypes.Block, error) {
+	block, err := cp.client.Block(cp.ctx, &height)
+	if err != nil {
+		return nil, err
+	}
+	return block.Block, nil
 }
