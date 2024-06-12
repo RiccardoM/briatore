@@ -86,7 +86,7 @@ func (r *Reporter) convertPoolShares(gammToken sdk.Coin, height int64) (sdk.Coin
 	//nolint:staticcheck // This query is still useful
 	poolRes, err := r.gammQueryClient.Pool(ctx, &gammtypes.QueryPoolRequest{PoolId: poolID})
 	if err != nil {
-		return nil, fmt.Errorf("error while querying the pool: %s", err)
+		return nil, fmt.Errorf("error while querying the pool: %w", err)
 	}
 
 	var pool gammtypes.CFMMPoolI

@@ -55,7 +55,7 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 	if minBlockHeight == 0 {
 		genesis, err := r.client.Genesis()
 		if err != nil {
-			return nil, fmt.Errorf("error while getting the genesis: %s", err)
+			return nil, fmt.Errorf("error while getting the genesis: %w", err)
 		}
 
 		if timestamp.Before(genesis.Genesis.GenesisTime) {
@@ -68,16 +68,16 @@ func (r *Reporter) getBlockNearTimestampFromChain(timestamp time.Time) (*tmtypes
 
 	maxBlockHeight, err := r.client.LatestHeight()
 	if err != nil {
-		return nil, fmt.Errorf("error while getting latest height: %s", err)
+		return nil, fmt.Errorf("error while getting latest height: %w", err)
 	}
 
 	latestBlock, err := r.getBlockOrLatestHeight(maxBlockHeight)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting latest block: %s", err)
+		return nil, fmt.Errorf("error while getting latest block: %w", err)
 	}
 
 	if timestamp.After(latestBlock.Block.Time) {
-		return nil, fmt.Errorf("%s is after latest block time", timestamp)
+		return nil, fmt.Errorf("%s is after latest block timw", timestamp)
 	}
 
 	// Perform the binary search
@@ -98,7 +98,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 	minBlock, err := r.getBlockOrMinHeight(minHeight)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting min block: %s", err)
+		return nil, fmt.Errorf("error while getting min block: %w", err)
 	}
 
 	if minBlock.Block.Time.Equal(timestamp) {
@@ -108,7 +108,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 	maxBlock, err := r.getBlockOrLatestHeight(maxHeight)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting max block")
+		return nil, fmt.Errorf("error while gettingwmax block")
 	}
 
 	if maxBlock.Block.Time.Equal(timestamp) {
@@ -140,7 +140,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 
 	avgBlock, err := r.getBlockOrMinHeight(avgHeight)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting average block: %s", err)
+		return nil, fmt.Errorf("error while getting average block: %w", err)
 	}
 
 	if avgBlock.Block.Time.Equal(timestamp) {

@@ -36,7 +36,7 @@ func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
 	// Try pinging the addresses
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	if err := utils.PingAddress(cfg.RPCAddress, httpClient); err != nil {
-		return nil, fmt.Errorf("error while pinging the RPC address: %s", err)
+		return nil, fmt.Errorf("error while pinging the RPC address: %w", err)
 	}
 
 	rpcAddress, headers := utils.ParseAddressHeaders(cfg.RPCAddress)
@@ -95,35 +95,35 @@ func (r *Reporter) getHeightAmount(address string, height int64) (sdk.Coins, err
 
 	bondDenom, err := types.GetBaseNativeDenom(r.chain.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting base native denom: %s", err)
+		return nil, fmt.Errorf("error while getting base native denom: %w", err)
 	}
 
 	balance, err := r.getBalanceAmount(address, height)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting balance: %s", err)
+		return nil, fmt.Errorf("error while getting balance: %w", err)
 	}
 
 	delegations, err := r.getDelegationsAmount(address, height)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting delegations: %s", err)
+		return nil, fmt.Errorf("error while getting delegations: %w", err)
 	}
 	balance = balance.Add(delegations...)
 
 	redelegations, err := r.getReDelegationsAmount(address, bondDenom, height)
 	if err != nil {
-		return nil, fmt.Errorf("error while gettig redelegations: %s", err)
+		return nil, fmt.Errorf("error while gettig redelegations: %w", err)
 	}
 	balance = balance.Add(redelegations...)
 
 	unbondingDelegations, err := r.getUnbondingDelegationsAmount(address, bondDenom, height)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting unbonding delegations: %s", err)
+		return nil, fmt.Errorf("error while getting unbonding delegations: %w", err)
 	}
 	balance = balance.Add(unbondingDelegations...)
 
 	osmosisAmount, err := r.getOsmosisAmount(address, height)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting osmosis amount: %s", err)
+		return nil, fmt.Errorf("error while getting osmosis amount: %w", err)
 	}
 	balance = balance.Add(osmosisAmount...)
 

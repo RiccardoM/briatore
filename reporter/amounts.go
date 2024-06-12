@@ -60,7 +60,6 @@ func (r *Reporter) getDelegationsAmount(address string, height int64) (sdk.Coins
 			if strings.Contains(err.Error(), "unable to find delegations") {
 				return nil, nil
 			}
-
 			return nil, err
 		}
 
