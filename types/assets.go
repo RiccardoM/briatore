@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -85,7 +85,7 @@ type assetsResponse struct {
 // GetAssets returns the list of supported assets
 func GetAssets() (Assets, error) {
 	// Read the stored assets
-	bz, err := ioutil.ReadFile(path.Join(HomePath, assetFile))
+	bz, err := os.ReadFile(path.Join(HomePath, assetFile))
 	if os.IsNotExist(err) {
 		// Get the assets from online
 		assets, err := RefreshAssets()
@@ -112,7 +112,7 @@ func RefreshAssets() (Assets, error) {
 	}
 	defer res.Body.Close()
 
-	bz, err := ioutil.ReadAll(res.Body)
+	bz, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func writeAssets(assets Assets) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path.Join(HomePath, assetFile), bz, 0600)
+	return os.WriteFile(path.Join(HomePath, assetFile), bz, 0600)
 }
 
 func GetBaseNativeDenom(chainName string) (string, error) {

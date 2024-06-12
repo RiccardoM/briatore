@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"google.golang.org/grpc"
@@ -13,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/riccardom/briatore/cosmos"
+	"github.com/riccardom/briatore/gprc"
 	"github.com/riccardom/briatore/types"
 	"github.com/riccardom/briatore/utils"
 )
@@ -22,7 +24,7 @@ type Reporter struct {
 
 	chain *types.ChainConfig
 
-	grpcConnection *grpc.ClientConn
+	grpcConnection grpc.ClientConnInterface
 	grpcHeaders    map[string]string
 
 	client        CosmosClient
@@ -31,8 +33,14 @@ type Reporter struct {
 }
 
 func NewReporter(cfg *types.ChainConfig, cdc codec.Codec) (*Reporter, error) {
-	grpcAddress, headers := utils.ParseGRPCAddress(cfg.GRPCAddress)
-	grpcConnection, err := utils.CreateGrpcConnection(grpcAddress)
+	// Try pinging the addresses
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	if err := utils.PingAddress(cfg.RPCAddress, httpClient); err != nil {
+		return nil, fmt.Errorf("error while pinging the RPC address: %s", err)
+	}
+
+	rpcAddress, headers := utils.ParseAddressHeaders(cfg.RPCAddress)
+	grpcConnection, err := gprc.NewConnection(rpcAddress, cdc)
 	if err != nil {
 		return nil, err
 	}

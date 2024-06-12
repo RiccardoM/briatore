@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -21,7 +20,7 @@ type Cache struct {
 
 func readCache() (Cache, error) {
 	// Read the cache
-	bz, err := ioutil.ReadFile(path.Join(HomePath, cacheFileName))
+	bz, err := os.ReadFile(path.Join(HomePath, cacheFileName))
 	if os.IsNotExist(err) {
 		return Cache{}, nil
 	}
@@ -39,7 +38,7 @@ func writeCache(cache Cache) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path.Join(HomePath, cacheFileName), bz, 0600)
+	return os.WriteFile(path.Join(HomePath, cacheFileName), bz, 0600)
 }
 
 // --------------------------------------------------------------------------------------------------------------------

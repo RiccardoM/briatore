@@ -2,7 +2,6 @@ package apis
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -23,12 +22,12 @@ func StoreResults(id types.ReportID, result *types.ReportResult) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path.Join(resultsFolder, id.String()), bz, 0600)
+	return os.WriteFile(path.Join(resultsFolder, id.String()), bz, 0600)
 }
 
 // GetResult returns the result for the report having the given id
 func GetResult(id types.ReportID) (result *types.ReportResult, found bool, err error) {
-	bz, err := ioutil.ReadFile(path.Join(resultsFolder, id.String()))
+	bz, err := os.ReadFile(path.Join(resultsFolder, id.String()))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, false, nil

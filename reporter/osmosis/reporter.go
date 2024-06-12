@@ -24,7 +24,7 @@ type Reporter struct {
 	lockupQueryClient lockuptypes.QueryClient
 }
 
-func NewReporter(grpcConnection *grpc.ClientConn, grpcHeaders map[string]string, cdc codec.Codec) (*Reporter, error) {
+func NewReporter(grpcConnection grpc.ClientConnInterface, grpcHeaders map[string]string, cdc codec.Codec) (*Reporter, error) {
 	return &Reporter{
 		cdc:               cdc,
 		grpcHeaders:       grpcHeaders,
@@ -83,6 +83,7 @@ func (r *Reporter) convertPoolShares(gammToken sdk.Coin, height int64) (sdk.Coin
 	// Get the pool data
 	ctx := utils.GetRequestContext(height, r.grpcHeaders)
 
+	//nolint:staticcheck // This query is still useful
 	poolRes, err := r.gammQueryClient.Pool(ctx, &gammtypes.QueryPoolRequest{PoolId: poolID})
 	if err != nil {
 		return nil, fmt.Errorf("error while querying the pool: %s", err)

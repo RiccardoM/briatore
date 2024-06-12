@@ -3,7 +3,7 @@ package reporter
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -60,7 +60,7 @@ func getPriceFromAPI(id string, timestamp time.Time, currency string) (float64, 
 		return 0, fmt.Errorf("bad token price history response: status %d", res.StatusCode)
 	}
 
-	bz, err := ioutil.ReadAll(res.Body)
+	bz, err := io.ReadAll(res.Body)
 	if err != nil {
 		return 0, err
 	}

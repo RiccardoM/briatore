@@ -1,16 +1,18 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	sdkmath "cosmossdk.io/math"
+)
 
-func GetPower(exponent uint64) sdk.Int {
+func GetPower(exponent uint64) sdkmath.Int {
 	if exponent == 0 {
-		return sdk.OneInt()
+		return sdkmath.OneInt()
 	}
 
-	power := sdk.NewInt(10)
+	power := sdkmath.NewInt(10)
 	var i uint64 = 0
 	for ; i < exponent-1; i++ {
-		power = power.Mul(sdk.NewIntFromUint64(10))
+		power = power.Mul(sdkmath.NewIntFromUint64(10))
 	}
 	return power
 }

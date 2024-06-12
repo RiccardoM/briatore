@@ -1,7 +1,6 @@
 package report
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -66,7 +65,7 @@ The provided addresses must be comma separated.`,
 			outputFile, _ := cmd.Flags().GetString(flagFile)
 			if outputFile != "" {
 				log.Info().Msg("writing reports to file")
-				return ioutil.WriteFile(outputFile, bz, 0666)
+				return os.WriteFile(outputFile, bz, 0666)
 			}
 
 			cmd.Print(string(bz))

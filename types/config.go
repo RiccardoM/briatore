@@ -1,7 +1,7 @@
 package types
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/rs/zerolog/log"
@@ -25,7 +25,6 @@ type ReportConfig struct {
 type ChainConfig struct {
 	Name           string `yaml:"name"`
 	RPCAddress     string `yaml:"rpcAddress"`
-	GRPCAddress    string `yaml:"grpcAddress"`
 	AssetName      string `yaml:"asset"`
 	Bech32Prefix   string `yaml:"bech32Prefix"`
 	MinBlockHeight int64  `yaml:"minBlockHeight"`
@@ -47,7 +46,7 @@ func ReadConfig(cmd *cobra.Command) (*Config, error) {
 	cfgPath := path.Join(HomePath, configFileName)
 	log.Debug().Str("home", cfgPath).Msg("reading config file")
 
-	bz, err := ioutil.ReadFile(cfgPath)
+	bz, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return nil, err
 	}
