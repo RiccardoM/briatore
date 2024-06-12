@@ -34,4 +34,7 @@ RUN apk update && apk add --no-cache ca-certificates build-base
 # Copy the binary
 COPY --from=builder /code/build/briatore /usr/bin/briatore
 
+# Make sure the APIs are in release mode
+ENV GIN_MODE=release
+
 ENTRYPOINT ["briatore"]
