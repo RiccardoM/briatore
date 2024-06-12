@@ -21,5 +21,4 @@ tools-stamp
 coverage.txt
 
 # configuration
-*.yml
-*.yaml
+config.yaml

@@ -1,0 +1,19 @@
+services:
+
+  # This represents the Briatore service which will run the APIs.
+  briatore:
+    image: riccardom/briatore:latest
+    build: .
+    restart: unless-stopped
+    container_name: briatore
+    ports:
+      # This binds the container port 8080 to the host port 8080.
+      # Port 8080 is the default one for the APIs.
+      - 8080:8080
+    volumes:
+      # This volume binds the folder inside which the parser config.yaml file is located, to the /files folder
+      - $HOME/briatore:/home
+
+    # This tells Briatore to run the APIs service, with the home properly set to the /home folder, that is bound
+    # to the folder on the host machine where the config.yaml file is located.
+    command: "start --home /home --port 8080"
