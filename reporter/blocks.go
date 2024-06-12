@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -105,7 +106,7 @@ func (r *Reporter) binarySearchBlock(minHeight, maxHeight int64, timestamp time.
 		return minBlock.Block, nil
 	}
 
-	maxBlock, err := r.getBlockOrMinHeight(maxHeight)
+	maxBlock, err := r.getBlockOrLatestHeight(maxHeight)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting max block")
 	}
@@ -167,7 +168,7 @@ func (r *Reporter) getBlockOrMinHeight(height int64) (*tmctypes.ResultBlock, err
 	block, err := r.client.Block(height)
 
 	if err != nil {
-		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
+		if rpcErr, ok := errors.Unwrap(err).(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "lowest height") {
 			var lowestHeight int64
 			_, err = fmt.Sscanf(rpcErr.Data, "height %d is not available, lowest height is %d", &height, &lowestHeight)
 			if err != nil {
@@ -192,7 +193,7 @@ func (r *Reporter) getBlockOrLatestHeight(height int64) (*tmctypes.ResultBlock, 
 	block, err := r.client.Block(height)
 
 	if err != nil {
-		if rpcErr, ok := err.(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
+		if rpcErr, ok := errors.Unwrap(err).(*rpctypes.RPCError); ok && strings.Contains(rpcErr.Data, "current blockchain height") {
 			var maxHeight int64
 			_, err = fmt.Sscanf(rpcErr.Data, "height %d must be less than or equal to the current blockchain height %d", &height, &maxHeight)
 			if err != nil {
